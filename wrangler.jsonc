@@ -11,14 +11,14 @@
     "not_found_handling": "404-page",
     "run_worker_first": ["/api/*", "/admin/pro/config.yml"]
   },
-  // Contact form e-mail. Uncomment once Cloudflare Email Routing is enabled on assyst.bg
-  // and CONTACT_TO is added and verified as a destination address (see README).
-  // "send_email": [{ "name": "MAIL", "destination_address": "assystbulgaria@gmail.com" }],
+  // Contact form e-mail. Sent from forma.assyst.bg (Email Routing is enabled only on that
+  // subdomain, so the main assyst.bg mail stays at SuperHosting) to the verified CONTACT_TO.
+  "send_email": [{ "name": "MAIL", "destination_address": "assystbulgaria@gmail.com" }],
   // Admin panel editors and sessions. Wrangler creates the namespace on the first deploy.
   "kv_namespaces": [{ "binding": "USERS" }],
   "vars": {
     "CONTACT_TO": "assystbulgaria@gmail.com",
-    "CONTACT_FROM": "forma@assyst.bg",
+    "CONTACT_FROM": "sait@forma.assyst.bg",
     "REPO": "bgyordan/assyst-site"
   }
   // Secrets (set in the Cloudflare dashboard, never committed):
