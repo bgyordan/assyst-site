@@ -463,3 +463,41 @@ h1, h2 { text-wrap: balance; }
   .post-card p, .post-card .more { display: none; }
   .post-meta { margin-bottom: 4px; font-size: 12px; }
 }
+
+/* ---- По-плътен ритъм и нежни разделители между секциите ---- */
+:root { --sec: 72px; }
+@media (max-width: 980px) { :root { --sec: 56px; } }
+@media (max-width: 640px) { :root { --sec: 44px; } }
+.sec-mission { padding: var(--sec) 0 !important; }
+.sec-mission + .sec { padding-top: 0; }
+/* тънка линия с двете точки (двустранният мотив) между съседни бели секции */
+.sec + .sec > .wrap::before {
+  content: ''; display: block; height: 9px; margin: 0 auto calc(var(--sec) * .8); max-width: 520px;
+  background:
+    radial-gradient(circle at calc(50% - 9px) 50%, var(--teal) 3px, transparent 3.6px),
+    radial-gradient(circle at calc(50% + 9px) 50%, var(--teal) 3px, transparent 3.6px),
+    linear-gradient(90deg, transparent, var(--line) 25%, var(--line) 44%, transparent 44%, transparent 56%, var(--line) 56%, var(--line) 75%, transparent) center / 100% 1px no-repeat;
+  opacity: .9;
+}
+.sec-mission + .sec > .wrap::before { margin-top: 0; }
+/* без разделител около цветни ленти, призиви и статистики */
+.sec-cards.st-links > .wrap::before, .sec-team > .wrap::before, .sec-quote > .wrap::before,
+.sec-cards.st-links + .sec > .wrap::before, .sec-team + .sec > .wrap::before, .sec-quote + .sec > .wrap::before,
+.sec-cta > .wrap::before, .sec-stats > .wrap::before { display: none; }
+.sec + .sec-cta { padding-top: 0; }
+.sec-stats + .sec { padding-top: var(--sec); }
+.sec-stats + .sec > .wrap::before { display: none; }
+.sec + .sec-quote > .wrap::before, .sec + .sec-cards.st-links > .wrap::before, .sec + .sec-team > .wrap::before,
+.sec + .sec-cta > .wrap::before, .sec + .sec-stats > .wrap::before,
+.sec-quote + .sec > .wrap::before, .sec-team + .sec > .wrap::before, .sec-cards.st-links + .sec > .wrap::before,
+.sec-stats + .sec > .wrap::before { display: none; }
+
+/* ---- По-широко съдържание на големи екрани, в пропорция с херото ---- */
+@media (min-width: 1280px) {
+  .wrap { max-width: 1400px; padding: 0 48px; }
+  .posts { gap: 36px; }
+  .post-card h3 { font-size: 22px; }
+}
+@media (min-width: 1800px) {
+  .wrap { max-width: 1560px; }
+}
