@@ -21,12 +21,10 @@ const path = decodeURI(Astro.url.pathname);
 const fullTitle = title === 'Начало' ? `${settings.site_name} – ${settings.tagline}` : `${title} – ${settings.site_name}`;
 const isActive = (link: string) => (link === '/' ? path === '/' : path.startsWith(link));
 const year = new Date().getFullYear();
-// Дизайн посока: 'a' (Институт) или 'b' (Грижа) — задава се при build с PUBLIC_DESIGN
-const design = import.meta.env.PUBLIC_DESIGN === 'b' ? 'b' : 'a';
 const flatMenu = settings.menu.flatMap((m) => [m, ...(m.children || [])]);
 ---
 <!doctype html>
-<html lang="bg" data-design={design}>
+<html lang="bg">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
