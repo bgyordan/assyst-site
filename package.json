@@ -14,10 +14,13 @@
     "astro": "^7.4.13",
     "js-yaml": "^5.5.0",
     "marked": "^18.3.0",
-    "mimetext": "^3.0.28"
+    "mimetext": "^3.0.28",
+    "turndown": "^7.2.5"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261127.1",
+    "@types/js-yaml": "^4.0.9",
+    "@types/turndown": "^5.0.6",
     "wrangler": "^4.168.0"
   }
 }
