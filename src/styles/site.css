@@ -408,3 +408,58 @@ main:has(> .sec:last-child:is(.sec-team, .sec-quote, .sec-cards.st-links)) + .fo
 .footer .btn { background: #fff; border-color: #fff; color: var(--brand); }
 .footer .btn:hover { background: var(--paper); border-color: var(--paper); color: var(--brand); }
 .footer-bottom { border-top-color: rgba(255, 255, 255, .16); }
+
+/* ---- Пропорции и ритъм (преглед 27.11) ---- */
+h1 { font-size: clamp(2.1rem, 3.6vw, 3.1rem); line-height: 1.12; }
+h2 { font-size: clamp(1.6rem, 2.6vw, 2.2rem); }
+h1, h2 { text-wrap: balance; }
+.watermark { display: none; }
+.hero { padding: 72px 0 60px; }
+.sec-head { margin-bottom: 36px; }
+.sec-head .label { margin-bottom: 12px; }
+.sec-more { font-weight: 700; font-size: 15px; text-decoration: none; white-space: nowrap; color: var(--navy); border-bottom: 1.5px solid var(--line); padding-bottom: 3px; }
+.sec-more:hover { color: var(--teal); border-color: var(--teal); }
+.sec-posts .sec-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; max-width: none; }
+
+/* начален екран: по-компактен, в баланс със секцията отдолу */
+.hero-img-in { grid-template-columns: 1.15fr .85fr; gap: 64px; padding-top: 80px; padding-bottom: 72px; }
+.hero-img h1 { font-size: clamp(2.3rem, 4vw, 3.4rem); margin-bottom: 20px; }
+.hero-text { font-size: 17px; max-width: 540px; }
+.glass { padding: 18px 52px 18px 22px; }
+.glass strong { font-size: 15.5px; }
+.glass span { font-size: 13.5px; }
+.hero-stats .wrap > div { padding: 18px 0; }
+.hero-stats dd { font-size: 26px; }
+
+/* новини: еднакви карти, спокойни заглавия */
+.posts { gap: 28px; }
+.post-body { padding-top: 18px; }
+.post-card h3 { font-family: var(--sans); font-weight: 700; font-size: 17.5px; line-height: 1.4; letter-spacing: -0.005em; margin-bottom: 8px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.post-card p { font-size: 15px; line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.post-meta { font-size: 12.5px; color: var(--muted); font-weight: 600; }
+.post-meta span { color: var(--teal); }
+.article-head h1 { font-size: clamp(1.8rem, 3.2vw, 2.6rem); }
+
+.footer { margin-top: 0; }
+
+@media (max-width: 980px) {
+  .hero-img-in { grid-template-columns: 1fr; padding-top: 56px; padding-bottom: 48px; gap: 32px; }
+}
+@media (max-width: 640px) {
+  .hero-img h1 { font-size: 2.15rem; }
+  .hero-img .btns { margin-top: 22px; }
+  .hero-img .btn { padding: 12px 20px; font-size: 14.5px; }
+  .glass { padding: 14px 44px 14px 18px; }
+  .glass span { display: none; }
+  .hero-links { gap: 10px; }
+  .sec-posts .sec-head { display: flex; align-items: flex-end; }
+  .sec-more { font-size: 14px; }
+  /* новините на телефон: малка снимка вляво, текст вдясно */
+  .posts { gap: 18px; }
+  .post-card { display: grid; grid-template-columns: 112px 1fr; gap: 14px; align-items: start; }
+  .post-img { aspect-ratio: 1; border-radius: 12px; }
+  .post-body { padding-top: 0; }
+  .post-card h3 { font-size: 16px; -webkit-line-clamp: 3; }
+  .post-card p, .post-card .more { display: none; }
+  .post-meta { margin-bottom: 4px; font-size: 12px; }
+}
