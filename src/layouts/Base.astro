@@ -97,9 +97,29 @@ const flatMenu = settings.menu.flatMap((m) => [m, ...(m.children || [])]);
       </div>
     </div>
     <div class="wrap footer-bottom">
-      <p>{settings.footer_text.replace('{year}', String(year))}</p>
-      <a href="/privacy-policy/">Политика за поверителност</a>
+      <p>{settings.footer_text.replace('{year}', String(year))}{settings.legal_name && <> · {settings.legal_name}</>}{settings.eik && <> · ЕИК {settings.eik}</>}</p>
+      <nav class="legal" aria-label="Правна информация">
+        <a href="/privacy-policy/">Поверителност</a>
+        <a href="/cookie-policy/">Бисквитки</a>
+        <a href="/obshti-usloviya/">Общи условия</a>
+        <a href="/dokumenti/">Документи</a>
+      </nav>
     </div>
   </footer>
+  <div class="cookie-note" id="cookie-note" hidden>
+    <p><b>Без проследяване.</b> Сайтът не използва бисквитки за анализ или реклама. <a href="/cookie-policy/">Политика за бисквитки</a></p>
+    <button type="button" class="btn small" id="cookie-ok">Разбрах</button>
+  </div>
+  <script is:inline>
+    (function () {
+      var k = 'assyst_notice', el = document.getElementById('cookie-note');
+      try { if (localStorage.getItem(k)) return; } catch (e) {}
+      el.hidden = false;
+      document.getElementById('cookie-ok').addEventListener('click', function () {
+        el.hidden = true;
+        try { localStorage.setItem(k, '1'); } catch (e) {}
+      });
+    })();
+  </script>
 </body>
 </html>
