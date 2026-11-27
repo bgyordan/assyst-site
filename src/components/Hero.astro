@@ -5,35 +5,25 @@ const isImage = hero.style === 'image' && hero.image;
 ---
 {isImage ? (
   <section class="hero-img">
+    <img class="hero-bg" src={hero.image} alt="" fetchpriority="high" />
+    <div class="hero-shade" aria-hidden="true"></div>
     <div class="wrap hero-img-in">
       <div class="hero-left">
         {hero.label && <div class="label">{hero.label}</div>}
         <h1 set:html={accent(hero.title)} />
         {hero.text && <div class="hero-text" set:html={md(hero.text)} />}
-        {hero.buttons && <div class="btns">{hero.buttons.map((b) => <a class={b.outline ? 'btn ghost-dark' : 'btn'} href={b.link}>{b.text}</a>)}</div>}
-        {hero.stats && (
-          <dl class="hero-stats">{hero.stats.map((s) => <div><dt>{s.label}</dt><dd>{s.value}</dd></div>)}</dl>
-        )}
+        {hero.buttons && <div class="btns">{hero.buttons.map((b) => <a class={b.outline ? 'btn ghost' : 'btn'} href={b.link}>{b.text}</a>)}</div>}
       </div>
-      <figure class="hero-figure">
-        <img src={hero.image} alt="" fetchpriority="high" />
-        <span class="hero-orb hero-orb-l" aria-hidden="true"></span>
-        <span class="hero-orb hero-orb-r" aria-hidden="true"></span>
-      </figure>
-    </div>
-    {hero.links && (
-      <div class="hero-links-band">
-        <div class="wrap hero-links">
-          {hero.links.map((l, i) => (
-            <a href={l.link} class="entry">
-              <span class="entry-num">{String(i + 1).padStart(2, '0')}</span>
-              <strong>{l.title}</strong>
-              <span class="entry-text">{l.text}</span>
-              <i aria-hidden="true">→</i>
-            </a>
+      {hero.links && (
+        <div class="hero-links">
+          {hero.links.map((l) => (
+            <a href={l.link} class="glass"><strong>{l.title}</strong><span>{l.text}</span><i aria-hidden="true">→</i></a>
           ))}
         </div>
-      </div>
+      )}
+    </div>
+    {hero.stats && (
+      <dl class="hero-stats"><div class="wrap">{hero.stats.map((s) => <div><dt>{s.label}</dt><dd>{s.value}</dd></div>)}</div></dl>
     )}
   </section>
 ) : (
