@@ -16,8 +16,12 @@ const cats = [...new Set(posts.flatMap((p) => p.data.categories))];
 {sections.map((s: any, si: number) => (
   <section class={`sec sec-${s.type} ${s.style ? 'st-' + s.style : ''}`}>
     <div class="wrap">
-      {s.label && <div class="label">{s.label}</div>}
-      {s.heading && s.type !== 'cta' && s.type !== 'mission' && <h2 set:html={accent(s.heading)} />}
+      {(s.label || (s.heading && s.type !== 'cta' && s.type !== 'mission')) && (
+        <header class="sec-head">
+          {s.label && <div class="label">{s.label}</div>}
+          {s.heading && s.type !== 'cta' && s.type !== 'mission' && <h2 set:html={accent(s.heading)} />}
+        </header>
+      )}
 
       {s.type === 'text' && (
         <div class={s.aside_title || s.aside_items || s.aside_big ? 'split' : 'prose'}>
@@ -79,10 +83,16 @@ const cats = [...new Set(posts.flatMap((p) => p.data.categories))];
 
       {s.type === 'cta' && (
         <div class="cta">
-          {s.heading && <h2 set:html={accent(s.heading)} />}
-          {s.text && <p>{s.text}</p>}
-          {s.buttons && <div class="btns center">{s.buttons.map((b: any) => <a class="btn light" href={b.link}>{b.text}</a>)}</div>}
-          {s.contacts && <Contacts />}
+          <div class="cta-text">
+            {s.heading && <h2 set:html={accent(s.heading)} />}
+            {s.text && <p>{s.text}</p>}
+          </div>
+          {(s.buttons || s.contacts) && (
+            <div class="cta-actions">
+              {s.buttons && <div class="btns">{s.buttons.map((b: any) => <a class="btn light" href={b.link}>{b.text}</a>)}</div>}
+              {s.contacts && <Contacts />}
+            </div>
+          )}
         </div>
       )}
 

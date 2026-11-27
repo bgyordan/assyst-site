@@ -1,16 +1,18 @@
 ---
-import '@fontsource/montserrat/latin-400.css';
-import '@fontsource/montserrat/cyrillic-400.css';
-import '@fontsource/montserrat/latin-600.css';
-import '@fontsource/montserrat/cyrillic-600.css';
-import '@fontsource/montserrat/latin-700.css';
-import '@fontsource/montserrat/cyrillic-700.css';
-import '@fontsource/source-serif-4/latin-300.css';
-import '@fontsource/source-serif-4/cyrillic-300.css';
-import '@fontsource/source-serif-4/latin-300-italic.css';
-import '@fontsource/source-serif-4/cyrillic-300-italic.css';
+import '@fontsource/manrope/latin-400.css';
+import '@fontsource/manrope/cyrillic-400.css';
+import '@fontsource/manrope/latin-500.css';
+import '@fontsource/manrope/cyrillic-500.css';
+import '@fontsource/manrope/latin-600.css';
+import '@fontsource/manrope/cyrillic-600.css';
+import '@fontsource/manrope/latin-700.css';
+import '@fontsource/manrope/cyrillic-700.css';
+import '@fontsource/manrope/latin-800.css';
+import '@fontsource/manrope/cyrillic-800.css';
 import '@fontsource/source-serif-4/latin-400.css';
 import '@fontsource/source-serif-4/cyrillic-400.css';
+import '@fontsource/source-serif-4/latin-400-italic.css';
+import '@fontsource/source-serif-4/cyrillic-400-italic.css';
 import '../styles/site.css';
 import { settings, tel } from '../lib/util';
 interface Props { title: string; description?: string; image?: string; }
@@ -19,6 +21,7 @@ const path = decodeURI(Astro.url.pathname);
 const fullTitle = title === 'Начало' ? `${settings.site_name} – ${settings.tagline}` : `${title} – ${settings.site_name}`;
 const isActive = (link: string) => (link === '/' ? path === '/' : path.startsWith(link));
 const year = new Date().getFullYear();
+const flatMenu = settings.menu.flatMap((m) => [m, ...(m.children || [])]);
 ---
 <!doctype html>
 <html lang="bg">
@@ -39,16 +42,18 @@ const year = new Date().getFullYear();
 </head>
 <body>
   <a class="skip" href="#main">Към съдържанието</a>
-  <div class="topbar">
-    <div class="wrap">
-      <a href={tel(settings.phone)}>{settings.phone}</a>
-      <a href={`mailto:${settings.email}`}>{settings.email}</a>
-      {settings.facebook && <a href={settings.facebook} target="_blank" rel="noopener" aria-label="Facebook">Facebook</a>}
+  <div class="crisis">
+    <div class="wrap crisis-in">
+      <p><span class="bilateral" aria-hidden="true"><i></i><i></i></span>Преживели сте кризисно събитие? <a href="/krizisna/">Кризисна помощ</a> <span class="sep">·</span> <a href={tel(settings.phone)}>{settings.phone}</a></p>
+      <p class="crisis-112">При непосредствена опасност за живота: <a href="tel:112"><b>112</b></a></p>
     </div>
   </div>
   <header class="header">
     <div class="wrap header-in">
-      <a href="/" class="logo"><img src={settings.logo} alt={settings.site_name} width="90" height="45" /></a>
+      <a href="/" class="brand">
+        <img src={settings.logo} alt={settings.site_name} width="104" height="52" />
+        <span class="brand-tag">{settings.tagline}</span>
+      </a>
       <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-label="Меню" />
       <label for="nav-toggle" class="burger" aria-hidden="true"><span></span></label>
       <nav class="nav" aria-label="Основно меню">
@@ -62,23 +67,38 @@ const year = new Date().getFullYear();
             </li>
           ))}
         </ul>
-        {settings.donate_button && <a class="donate" href={settings.donate_button.link}>{settings.donate_button.text}</a>}
+        {settings.donate_button && <a class="donate" href={settings.donate_button.link}>{settings.donate_button.text} <span aria-hidden="true">♥</span></a>}
       </nav>
     </div>
   </header>
   <main id="main"><slot /></main>
   <footer class="footer">
-    <div class="wrap footer-in">
+    <div class="wrap footer-grid">
+      <div class="footer-about">
+        <img src={settings.logo} alt={settings.site_name} width="104" height="52" class="footer-logo" />
+        <p>{settings.tagline}. Неправителствена организация в обществена полза, част от международната мрежа ASSYST Humanitarian &amp; Research Projects.</p>
+      </div>
       <div>
-        <img src={settings.logo} alt="" width="80" height="40" class="footer-logo" />
-        <p>{settings.footer_text.replace('{year}', String(year))}</p>
+        <h4>Навигация</h4>
+        <ul>{flatMenu.map((m) => <li><a href={m.link}>{m.text}</a></li>)}</ul>
       </div>
-      <div class="footer-links">
-        <a href={tel(settings.phone)}>{settings.phone}</a>
-        <a href={`mailto:${settings.email}`}>{settings.email}</a>
-        {settings.facebook && <a href={settings.facebook} target="_blank" rel="noopener">Facebook</a>}
-        <a href="/privacy-policy/">Политика за поверителност</a>
+      <div>
+        <h4>Контакти</h4>
+        <ul>
+          <li><a href={tel(settings.phone)}>{settings.phone}</a></li>
+          <li><a href={`mailto:${settings.email}`}>{settings.email}</a></li>
+          {settings.facebook && <li><a href={settings.facebook} target="_blank" rel="noopener">Facebook</a></li>}
+        </ul>
       </div>
+      <div class="footer-help">
+        <h4>Нужна е помощ сега?</h4>
+        <p>При непосредствена опасност за живота звънете на <a href="tel:112"><b>112</b></a>. За ранна психологическа подкрепа след кризисно събитие:</p>
+        <a class="btn small" href="/krizisna/">Кризисна помощ →</a>
+      </div>
+    </div>
+    <div class="wrap footer-bottom">
+      <p>{settings.footer_text.replace('{year}', String(year))}</p>
+      <a href="/privacy-policy/">Политика за поверителност</a>
     </div>
   </footer>
 </body>
