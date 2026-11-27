@@ -9,7 +9,7 @@ export const accent = (s?: string) => mdInline(s);
 
 export type Settings = {
   site_name: string; tagline: string; logo: string; phone: string; email: string; facebook?: string;
-  footer_text: string; menu: { text: string; link: string; children?: { text: string; link: string }[] }[];
+  footer_text: string; legal_name?: string; eik?: string; address?: string; menu: { text: string; link: string; children?: { text: string; link: string }[] }[];
   donate_button?: { text: string; link: string };
   categories: { name: string; slug: string }[];
 };

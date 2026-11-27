@@ -80,6 +80,8 @@ export const PAGES: { file: string; name: string; url: string }[] = [
   { file: 'kontakti', name: 'Контакти', url: '/kontakti/' },
   { file: 'blog', name: 'Блог', url: '/blog/' },
   { file: 'privacy-policy', name: 'Политика за поверителност', url: '/privacy-policy/' },
+  { file: 'cookie-policy', name: 'Политика за бисквитки', url: '/cookie-policy/' },
+  { file: 'obshti-usloviya', name: 'Общи условия', url: '/obshti-usloviya/' },
 ];
 
 export type Coll = {
@@ -138,6 +140,9 @@ export const SETTINGS_FIELDS: Field[] = [
   { key: 'phone', label: 'Телефон', type: 'text' },
   { key: 'email', label: 'Имейл', type: 'email' },
   { key: 'facebook', label: 'Facebook страница', type: 'url' },
+  { key: 'legal_name', label: 'Пълно име на сдружението', type: 'text', hint: 'Показва се във футъра и в правните страници.' },
+  { key: 'eik', label: 'ЕИК', type: 'text' },
+  { key: 'address', label: 'Седалище и адрес на управление', type: 'text' },
   { key: 'footer_text', label: 'Текст в най-долната част', type: 'text', hint: '{year} се заменя с текущата година.' },
   { key: 'menu', label: 'Главно меню', type: 'list', itemLabel: 'Бутон в менюто', fields: [
     { key: 'text', label: 'Надпис', type: 'text' },
