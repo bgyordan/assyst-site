@@ -44,7 +44,7 @@ const flatMenu = settings.menu.flatMap((m) => [m, ...(m.children || [])]);
   <a class="skip" href="#main">Към съдържанието</a>
   <div class="crisis">
     <div class="wrap crisis-in">
-      <p><span class="bilateral" aria-hidden="true"><i></i><i></i></span>Преживели сте кризисно събитие? <a href="/krizisna/">Кризисна помощ</a> <span class="sep">·</span> <a href={tel(settings.phone)}>{settings.phone}</a></p>
+      <p><span class="bilateral" aria-hidden="true"><i></i><i></i></span><span class="crisis-q">Преживели сте кризисно събитие? </span><a href="/krizisna/">Кризисна помощ</a> <span class="sep">·</span> <a href={tel(settings.phone)}>{settings.phone}</a></p>
       <p class="crisis-112">При непосредствена опасност за живота: <a href="tel:112"><b>112</b></a></p>
     </div>
   </div>
@@ -54,9 +54,9 @@ const flatMenu = settings.menu.flatMap((m) => [m, ...(m.children || [])]);
         <img src={settings.logo} alt={settings.site_name} width="104" height="52" />
         <span class="brand-tag">{settings.tagline}</span>
       </a>
-      <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-label="Меню" />
-      <label for="nav-toggle" class="burger" aria-hidden="true"><span></span></label>
-      <nav class="nav" aria-label="Основно меню">
+      <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-label="Отвори менюто" aria-controls="main-nav" />
+      <label for="nav-toggle" class="burger" aria-hidden="true"><span></span><em>Меню</em></label>
+      <nav class="nav" id="main-nav" aria-label="Основно меню">
         <ul>
           {settings.menu.map((m) => (
             <li class={m.children?.length ? 'has-sub' : ''}>
@@ -68,6 +68,11 @@ const flatMenu = settings.menu.flatMap((m) => [m, ...(m.children || [])]);
           ))}
         </ul>
         {settings.donate_button && <a class="donate" href={settings.donate_button.link}>{settings.donate_button.text} <span aria-hidden="true">♥</span></a>}
+        <div class="nav-extra">
+          <p class="nav-extra-t">Нужна е помощ?</p>
+          <a class="nav-call" href={tel(settings.phone)}><span>Обадете се</span><b>{settings.phone}</b></a>
+          <p class="nav-extra-s">При непосредствена опасност за живота: <a href="tel:112"><b>112</b></a></p>
+        </div>
       </nav>
     </div>
   </header>
@@ -110,6 +115,18 @@ const flatMenu = settings.menu.flatMap((m) => [m, ...(m.children || [])]);
     <p><b>Без проследяване.</b> Сайтът не използва бисквитки за анализ или реклама. <a href="/cookie-policy/">Политика за бисквитки</a></p>
     <button type="button" class="btn small" id="cookie-ok">Разбрах</button>
   </div>
+  <script is:inline>
+    (function () {
+      var t = document.getElementById('nav-toggle'), nav = document.getElementById('main-nav');
+      if (!t || !nav) return;
+      function fit() { var h = t.closest('.header'); if (h) nav.style.setProperty('--nav-top', Math.max(0, h.getBoundingClientRect().bottom) + 'px'); }
+      t.addEventListener('change', function () { fit(); t.setAttribute('aria-label', t.checked ? 'Затвори менюто' : 'Отвори менюто'); });
+      window.addEventListener('resize', function () { if (t.checked) fit(); });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && t.checked) { t.checked = false; t.dispatchEvent(new Event('change')); } });
+      nav.addEventListener('click', function (e) { if (e.target.closest('a') && t.checked) { t.checked = false; } });
+      window.addEventListener('pageshow', function () { if (t.checked) { t.checked = false; } });
+    })();
+  </script>
   <script is:inline>
     (function () {
       var k = 'assyst_notice', el = document.getElementById('cookie-note');
