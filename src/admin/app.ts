@@ -36,7 +36,9 @@ function shell(title: string, ...content: (Node | false | null | undefined)[]) {
       ),
     ),
     h('main', { class: 'wrap' }, ...(content[0] instanceof HTMLAnchorElement && content[0].classList.contains('back') ? [content.shift()!, h('h1', null, title)] : [h('h1', null, title)]), ...content),
-    h('footer', { class: 'foot' }, 'Нужно е нещо по-сложно? ', h('a', { href: '/admin/pro/' }, 'Разширен режим')),
+    h('footer', { class: 'foot' }, user?.kind === 'pw'
+      ? h('a', { href: '#/account' }, 'Смяна на паролата')
+      : ['Нужно е нещо по-сложно? ', h('a', { href: '/admin/pro/' }, 'Разширен режим')]),
   );
   window.scrollTo(0, 0);
 }
@@ -146,6 +148,7 @@ async function dashboard() {
     ...COLLECTIONS.map((c) => tile(`#/c/${c.key}`, c.icon, c.name, 'Преглед и редакция')),
     tile('#/pages', 'layout', 'Страници', 'Текстовете на всички страници'),
     tile('#/settings', 'phone', 'Контакти и меню', 'Телефон, имейл, Facebook, меню'),
+    ...(user?.admin ? [tile('#/users', 'users', 'Служители', 'Кой може да влиза в панела')] : []),
   );
 }
 
@@ -413,6 +416,8 @@ async function route() {
     }
     if (parts[0] === 'pages') return parts[1] ? pageEdit(parts[1]) : pagesList();
     if (parts[0] === 'settings') return settingsView();
+    if (parts[0] === 'users' && user?.admin) return usersView();
+    if (parts[0] === 'account') return accountView();
     dashboard();
   } catch (e) {
     if (e instanceof api.LoginError) return loginView();
@@ -422,17 +427,131 @@ async function route() {
 
 function loginView(noAccess?: string) {
   root.innerHTML = '';
+  const email = h('input', { type: 'email', autocomplete: 'username', required: true, placeholder: 'name@example.com' });
+  const pass = h('input', { type: 'password', autocomplete: 'current-password', required: true });
+  const msg = h('p', { class: 'err', hidden: true });
+  const submit = h('button', { class: 'btn big', type: 'submit' }, 'Вход');
+  const form = h('form', { onsubmit: async (e: Event) => {
+    e.preventDefault();
+    msg.hidden = true;
+    const err = await busy(submit, 'Влизане…', () => api.login(email.value.trim(), pass.value));
+    if (err === '') { location.reload(); return; }
+    msg.textContent = err || 'Входът не успя. Опитайте пак.'; msg.hidden = false;
+  } },
+    h('div', { class: 'field' }, h('label', { class: 'flabel' }, 'Имейл'), email),
+    h('div', { class: 'field' }, h('label', { class: 'flabel' }, 'Парола'), pass),
+    msg, submit,
+  );
   root.append(h('div', { class: 'login' },
     h('div', { class: 'login-card' },
       h('img', { src: '/logo.png', alt: 'ASSYST BULGARIA', class: 'login-logo' }),
       h('h1', null, 'Админ панел'),
       noAccess
-        ? h('p', { class: 'err' }, `Профилът „${noAccess}“ няма права да редактира сайта. Помолете администратора да ви добави.`)
-        : h('p', null, 'Влезте, за да редактирате съдържанието на сайта.'),
-      h('a', { class: 'btn big', href: '/api/auth?mode=session' }, 'Вход с GitHub'),
-      noAccess && h('button', { class: 'link-btn', onclick: async () => { await api.logout(); location.reload(); } }, 'Вход с друг профил'),
+        ? h('p', { class: 'err' }, `Профилът „${noAccess}“ няма права да редактира сайта.`)
+        : h('p', null, 'Влезте с имейла и паролата, които сте получили.'),
+      form,
+      h('p', { class: 'login-alt' }, 'Забравена парола? Обърнете се към администратора.'),
+      h('a', { class: 'login-gh', href: '/api/auth?mode=session' }, 'Вход за администратор с GitHub'),
     ),
   ));
+  email.focus();
+}
+
+function genPassword() {
+  const abc = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const r = crypto.getRandomValues(new Uint32Array(12));
+  return Array.from(r, (n) => abc[n % abc.length]).join('');
+}
+
+async function usersView() {
+  const listEl = h('div', { class: 'list' }, h('div', { class: 'loading-row' }, h('span', { class: 'spin' }), ' Зареждане…'));
+  const saverEl = h('p', { class: 'muted small-note' });
+  const name = h('input', { type: 'text', placeholder: 'Мария Иванова' });
+  const email = h('input', { type: 'email', placeholder: 'maria@example.com' });
+  const pass = h('input', { type: 'text', value: genPassword() });
+  const admin = h('input', { type: 'checkbox' });
+  const add = h('button', { class: 'btn', type: 'submit' }, 'Добави служител');
+  const done = h('div', { class: 'notice', hidden: true });
+  const form = h('form', { class: 'fields', onsubmit: (e: Event) => {
+    e.preventDefault();
+    busy(add, 'Записване…', async () => {
+      const u = { name: name.value.trim(), email: email.value.trim(), password: pass.value, admin: admin.checked };
+      await api.saveUser(u);
+      done.innerHTML = '';
+      done.append(h('b', null, 'Готово. Изпратете на служителя:'),
+        h('pre', null, `Адрес: ${location.origin}/admin/\nИмейл: ${u.email}\nПарола: ${u.password}`),
+        h('small', null, 'Паролата не се пази никъде видимо. Служителят може да я смени след като влезе.'));
+      done.hidden = false;
+      name.value = ''; email.value = ''; pass.value = genPassword(); admin.checked = false;
+      load();
+    });
+  } },
+    h('div', { class: 'field' }, h('label', { class: 'flabel' }, 'Име'), name),
+    h('div', { class: 'field' }, h('label', { class: 'flabel' }, 'Имейл'), email),
+    h('div', { class: 'field' }, h('label', { class: 'flabel' }, 'Начална парола'), h('div', { class: 'row' }, pass,
+      h('button', { type: 'button', class: 'btn ghost small', onclick: () => { pass.value = genPassword(); } }, 'Нова'))),
+    h('label', { class: 'check' }, admin, h('span', null, 'Може да добавя и други служители')),
+    add,
+  );
+  shell('Служители', back('#/', 'Начало'),
+    h('p', { class: 'lead' }, 'Хората тук влизат с имейл и парола и могат да редактират всичко в сайта.'),
+    h('div', { class: 'editor-grid' },
+      h('div', null, listEl, saverEl),
+      h('aside', { class: 'side' }, h('div', { class: 'card' }, h('h2', null, 'Нов служител'), form), done),
+    ),
+  );
+  async function load() {
+    try {
+      const { users, saver } = await api.listUsers();
+      listEl.innerHTML = '';
+      if (!users.length) listEl.append(h('p', { class: 'muted empty' }, 'Още няма добавени служители.'));
+      for (const u of users) {
+        listEl.append(h('div', { class: 'list-item' },
+          h('div', { class: 'li-main' }, h('span', { class: 'thumb' }, icon('users', 20)),
+            h('span', { class: 'li-text' }, h('b', null, u.name), h('small', null, [u.email, u.admin ? 'администратор' : ''].filter(Boolean).join(' · ')))),
+          h('div', { class: 'li-tools' },
+            h('button', { class: 'btn ghost small', onclick: async () => {
+              const pw = genPassword();
+              if (!(await confirmBox('Нова парола', `Да зададем ли нова парола на ${u.name}? Старата спира да работи.`, 'Задай нова парола'))) return;
+              try {
+                await api.saveUser({ email: u.email, name: u.name, admin: u.admin, password: pw });
+                done.innerHTML = '';
+                done.append(h('b', null, `Новата парола на ${u.name}:`), h('pre', null, pw));
+                done.hidden = false;
+              } catch (e) { toast(niceError(e), 'err'); }
+            } }, 'Нова парола'),
+            h('button', { class: 'btn ghost small danger', onclick: async () => {
+              if (!(await confirmBox('Премахване', `Да премахнем ли достъпа на ${u.name}?`, 'Премахни', true))) return;
+              try { await api.deleteUser(u.email); toast('Достъпът е премахнат'); load(); } catch (e) { toast(niceError(e), 'err'); }
+            } }, 'Премахни'),
+          ),
+        ));
+      }
+      saverEl.textContent = saver
+        ? `Промените на служителите се записват чрез GitHub профила на ${saver.login}.`
+        : 'Внимание: за да могат служителите да записват, администратор трябва да влезе веднъж с GitHub.';
+    } catch (e) { listEl.innerHTML = ''; listEl.append(h('p', { class: 'err' }, niceError(e))); }
+  }
+  load();
+}
+
+function accountView() {
+  const old = h('input', { type: 'password', autocomplete: 'current-password' });
+  const pw = h('input', { type: 'password', autocomplete: 'new-password' });
+  const pw2 = h('input', { type: 'password', autocomplete: 'new-password' });
+  const save = h('button', { class: 'btn', type: 'submit' }, 'Смени паролата');
+  shell('Смяна на паролата', back('#/', 'Начало'),
+    h('div', { class: 'card narrow-card' }, h('form', { class: 'fields', onsubmit: (e: Event) => {
+      e.preventDefault();
+      if (pw.value.length < 8) { toast('Новата парола трябва да е поне 8 знака.', 'err'); return; }
+      if (pw.value !== pw2.value) { toast('Двете нови пароли не съвпадат.', 'err'); return; }
+      busy(save, 'Записване…', async () => { await api.changePassword(old.value, pw.value); toast('Паролата е сменена'); location.hash = '#/'; });
+    } },
+      h('div', { class: 'field' }, h('label', { class: 'flabel' }, 'Сегашна парола'), old),
+      h('div', { class: 'field' }, h('label', { class: 'flabel' }, 'Нова парола (поне 8 знака)'), pw),
+      h('div', { class: 'field' }, h('label', { class: 'flabel' }, 'Нова парола още веднъж'), pw2),
+      save,
+    )));
 }
 
 (async () => {

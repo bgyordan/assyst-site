@@ -2,7 +2,8 @@
 // editor's GitHub sign-in. Every save is a commit; GitHub Actions then publishes the site.
 import { load, dump } from 'js-yaml';
 
-export type Me = { login: string; name: string; avatar: string; repo: string };
+export type Me = { kind: 'github' | 'pw'; login: string; name: string; avatar: string; admin: boolean; repo: string };
+export type Editor = { email: string; name: string; admin: boolean; created: number };
 export type RepoFile = { name: string; path: string; sha: string; type: 'file' | 'dir'; size: number };
 
 export class LoginError extends Error {}
@@ -25,6 +26,22 @@ async function call(path: string, init: RequestInit = {}) {
 
 export const me = (): Promise<Me> => call('me');
 export const logout = () => call('logout', { method: 'POST' });
+
+/** E-mail + password sign-in. Returns an error message, or '' on success. */
+export async function login(email: string, password: string): Promise<string> {
+  const r = await fetch('/api/login', {
+    method: 'POST', credentials: 'same-origin',
+    headers: { 'X-Assyst': '1', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  if (r.ok) return '';
+  const j = await r.json().catch(() => ({}));
+  return j.error || 'Входът не успя. Опитайте пак.';
+}
+export const changePassword = (old: string, password: string) => call('password', { method: 'POST', body: JSON.stringify({ old, password }) });
+export const listUsers = (): Promise<{ users: Editor[]; saver: { login?: string; at?: number } | null }> => call('users');
+export const saveUser = (u: { email: string; name: string; password?: string; admin: boolean }) => call('users', { method: 'POST', body: JSON.stringify(u) });
+export const deleteUser = (email: string) => call(`users?email=${encodeURIComponent(email)}`, { method: 'DELETE' });
 
 // --- base64 helpers that are safe for Cyrillic text ---
 export function b64encodeText(s: string) {

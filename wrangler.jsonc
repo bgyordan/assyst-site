@@ -14,6 +14,8 @@
   // Contact form e-mail. Uncomment once Cloudflare Email Routing is enabled on assyst.bg
   // and CONTACT_TO is added and verified as a destination address (see README).
   // "send_email": [{ "name": "MAIL", "destination_address": "assystbulgaria@gmail.com" }],
+  // Admin panel editors and sessions. Wrangler creates the namespace on the first deploy.
+  "kv_namespaces": [{ "binding": "USERS" }],
   "vars": {
     "CONTACT_TO": "assystbulgaria@gmail.com",
     "CONTACT_FROM": "forma@assyst.bg",
