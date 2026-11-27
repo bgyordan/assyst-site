@@ -25,6 +25,7 @@ window.addEventListener('hashchange', async () => {
 // ---------- layout ----------
 function shell(title: string, ...content: (Node | false | null | undefined)[]) {
   root.innerHTML = '';
+  document.body.classList.remove('has-actionbar');
   root.append(
     h('header', { class: 'top' },
       h('a', { href: '#/', class: 'brand' }, h('img', { src: '/logo.png', alt: '' }), h('span', null, 'Админ панел')),
@@ -143,6 +144,15 @@ async function dashboard() {
     ),
     h('h2', null, 'Всичко в сайта'),
     tiles,
+    h('div', { class: 'card help' },
+      h('h2', null, 'Как се публикува новина?'),
+      h('ol', null,
+        h('li', null, 'Натиснете ', h('b', null, '„Напиши новина“'), ' горе.'),
+        h('li', null, 'Попълнете заглавие, снимка и текст. Текст от Word може просто да се постави.'),
+        h('li', null, 'Натиснете ', h('b', null, '„Преглед“'), ', за да видите как изглежда, и после ', h('b', null, '„Публикувай“'), '.'),
+      ),
+      h('p', { class: 'muted' }, 'След 1–2 минути новината е на сайта. За поправка влезте в „Новини и статии“ и кликнете върху нея. Нищо не може да се развали необратимо: всяка промяна се пази и може да се върне.'),
+    ),
   );
   const tile = (href: string, ic: string, title: string, sub: string) =>
     h('a', { class: 'tile', href }, icon(ic, 22), h('b', null, title), h('small', null, sub));
@@ -185,13 +195,6 @@ async function listView(c: Coll) {
         h('div', { class: 'li-tools' },
           h('a', { class: 'btn ghost small', href: `#/c/${c.key}/edit/${encodeURIComponent(e.file.name)}` }, 'Редактирай'),
           c.url && !e.data.draft && h('a', { class: 'btn ghost small', href: c.url(e.id), target: '_blank' }, 'Виж'),
-          h('button', { class: 'btn ghost small danger', onclick: async () => {
-            if (!(await confirmBox(`Изтриване`, `Сигурни ли сте, че искате да изтриете „${e.data[c.titleKey]}“? Това не може да се отмени от тук.`, 'Изтрий', true))) return;
-            try {
-              await api.deleteFile(e.file.path, e.sha, `Изтрито: ${e.data[c.titleKey]}`);
-              cache.delete(c.key); afterSave(); toast('Изтрито'); listView(c);
-            } catch (err) { toast(niceError(err), 'err'); }
-          } }, 'Изтрий'),
         ),
       ));
     }
@@ -199,7 +202,18 @@ async function listView(c: Coll) {
   try { items = await loadColl(c); draw(); } catch (e) { listEl.innerHTML = ''; listEl.append(h('p', { class: 'err' }, niceError(e))); }
 }
 
-async function editView(c: Coll, fileName?: string) {
+const draftKey = (c: Coll) => `assyst_draft_${c.key}`;
+function readDraft(c: Coll): { data: Record<string, any>; body: string; at: number } | null {
+  try { const d = JSON.parse(localStorage.getItem(draftKey(c)) || 'null'); return d && (d.data?.[c.titleKey] || d.body) ? d : null; } catch { return null; }
+}
+const clearDraft = (c: Coll) => { try { localStorage.removeItem(draftKey(c)); } catch {} };
+
+const step = (n: number, title: string, hint: string, ...content: (Node | false | null | undefined)[]) =>
+  h('section', { class: 'card step' },
+    h('div', { class: 'step-head' }, h('span', { class: 'step-n' }, String(n)), h('div', null, h('h2', null, title), hint && h('p', null, hint))),
+    ...content);
+
+async function editView(c: Coll, fileName?: string, restored?: { data: Record<string, any>; body: string }) {
   const isNew = !fileName;
   let entry: Entry | undefined;
   if (!isNew) {
@@ -211,48 +225,128 @@ async function editView(c: Coll, fileName?: string) {
     const p = c.ext === 'md' ? api.parseMd(text) : { data: api.parseYaml(text), body: '' };
     entry = { ...entry, data: p.data, body: p.body, sha };
   }
-  const data: Record<string, any> = isNew ? c.defaults() : structuredClone(entry!.data);
+  // A new entry that was not published last time: offer to continue it.
+  if (isNew && !restored) {
+    const d = readDraft(c);
+    if (d) {
+      const goOn = await confirmBox('Имате незавършена чернова',
+        `„${d.data[c.titleKey] || 'без заглавие'}“ от ${new Date(d.at).toLocaleString('bg-BG', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}. Да продължим ли с нея?`,
+        'Продължи черновата');
+      if (goOn) restored = d; else clearDraft(c);
+    }
+  }
+  const data: Record<string, any> = restored ? restored.data : isNew ? c.defaults() : structuredClone(entry!.data);
   for (const f of c.fields) if (f.type === 'date' && data[f.key]) data[f.key] = isoDate(data[f.key]);
   const ctx = newCtx();
-  const body = c.bodyLabel ? richEditor({ value: entry?.body || '', placeholder: 'Започнете да пишете… Може да поставите текст от Word.', onImage: (f) => upload(f, 'image') }) : null;
+  const body = c.bodyLabel ? richEditor({ value: restored?.body ?? entry?.body ?? '', placeholder: 'Започнете да пишете… Може да поставите текст, копиран от Word.', onImage: (f) => upload(f, 'image') }) : null;
   body?.el.addEventListener('input', () => { dirty = true; });
+
+  const titleF = c.fields.filter((f) => f.key === c.titleKey);
+  const mediaF = c.fields.filter((f) => f.type === 'image' || f.type === 'file');
+  const detailF = c.fields.filter((f) => f.key !== c.titleKey && f.type !== 'image' && f.type !== 'file' && f.key !== 'order');
+  const extraF: Field[] = [
+    ...(c.key === 'posts' ? [{ key: 'excerpt', label: 'Кратко резюме', type: 'textarea', hint: 'Показва се в списъка с новини и в Google. Ако е празно, се взима началото на текста.' } as Field] : []),
+    ...c.fields.filter((f) => f.key === 'order'),
+    ...(c.key === 'posts' ? [{ key: 'draft', label: 'Скрий от сайта (запази като чернова)', type: 'bool' } as Field] : []),
+  ];
 
   const save = h('button', { class: 'btn big' }, isNew ? 'Публикувай' : 'Запази промените');
   save.addEventListener('click', () => busy(save, 'Записване…', async () => {
     ctx.collectors.forEach((fn) => fn());
     const title = String(data[c.titleKey] || '').trim();
-    if (!title) { toast('Моля, попълнете заглавие.', 'err'); return; }
+    if (!title) { toast('Моля, напишете заглавие (стъпка 1).', 'err'); (root.querySelector('.step input') as HTMLInputElement)?.focus(); return; }
     if (c.key === 'posts' && !data.excerpt && body) {
       const plain = body.value.replace(/[#*_>\[\]()!`-]/g, ' ').replace(/\s+/g, ' ').trim();
       data.excerpt = plain.length > 220 ? plain.slice(0, 220).replace(/\s+\S*$/, '') + '…' : plain;
     }
-    let md = body ? swapPreviews(body.value) : '';
+    const md = body ? swapPreviews(body.value) : '';
     const text = c.ext === 'md' ? api.stringifyMd(cleanData(data), md) : api.stringifyYaml(cleanData(data));
     const path = isNew ? await api.uniquePath(c.dir, api.slugify(title), c.ext) : entry!.file.path;
     await api.writeFile(path, api.b64encodeText(text), `${isNew ? 'Ново' : 'Промяна'}: ${title}`, entry?.sha);
     dirty = false; cache.delete(c.key); afterSave();
+    if (isNew) clearDraft(c);
     const id = path.split('/').pop()!.replace(/\.[^.]+$/, '');
-    toast(isNew ? 'Публикувано! След 1–2 минути ще се появи на сайта.' : 'Запазено! След 1–2 минути промяната ще е на сайта.');
-    if (isNew) location.hash = `#/c/${c.key}`; else editView(c, fileName);
-    void id;
+    doneView(c, id, title, isNew, !!data.draft);
   }));
 
+  const preview = body && h('button', { type: 'button', class: 'btn ghost big', onclick: () => {
+    ctx.collectors.forEach((fn) => fn());
+    previewBox(c, data, body.html);
+  } }, 'Преглед');
+
+  const del = !isNew && h('button', { type: 'button', class: 'link-btn danger', onclick: async () => {
+    if (!(await confirmBox('Изтриване', `Сигурни ли сте, че искате да изтриете „${data[c.titleKey]}“ от сайта?`, 'Изтрий', true))) return;
+    try {
+      await api.deleteFile(entry!.file.path, entry!.sha, `Изтрито: ${data[c.titleKey]}`);
+      dirty = false; cache.delete(c.key); afterSave(); toast('Изтрито'); location.hash = `#/c/${c.key}`;
+    } catch (err) { toast(niceError(err), 'err'); }
+  } }, `Изтрий ${c.one === 'член на екипа' ? 'този човек' : c.one === 'новина' ? 'тази новина' : 'този запис'}`);
+
+  let n = 0;
+  const media = mediaF[0];
   shell(isNew ? c.addLabel : `Редакция на ${c.one}`,
     back(`#/c/${c.key}`, c.name),
-    h('div', { class: 'editor-grid' },
-      h('div', { class: 'card' },
-        renderFields(data, c.fields.filter((f) => f.type !== 'image' && f.type !== 'file' && f.type !== 'chips' && f.key !== 'order' && f.type !== 'date' || f.key === 'title'), ctx),
-        body && h('div', { class: 'field' }, h('label', { class: 'flabel' }, c.bodyLabel!), body.el),
-        c.key === 'posts' && renderFields(data, [{ key: 'excerpt', label: 'Кратко резюме (по желание)', type: 'textarea', hint: 'Показва се в списъка с новини и в Google. Ако е празно, се взима началото на текста.' } as Field], ctx),
+    restored ? h('div', { class: 'notice' }, 'Продължавате незавършената чернова. Тя се пази само на този компютър, докато не натиснете „Публикувай“.')
+      : isNew ? h('p', { class: 'lead small' }, 'Попълнете стъпките отгоре надолу и натиснете „Публикувай“ най-долу. Докато пишете, всичко се пази на този компютър.') : null,
+    h('div', { class: 'steps' },
+      step(++n, c.key === 'team' ? 'Име' : 'Заглавие', c.key === 'posts' ? 'Кратко и ясно, както би стояло във вестник.' : '', renderFields(data, titleF.map((f) => ({ ...f, label: '' }) as Field), ctx)),
+      media && step(++n, media.type === 'image' ? 'Снимка' : 'Файл', media.type === 'image' ? 'Една хубава хоризонтална снимка. Ще я смалим автоматично.' : 'PDF или Word файл.', renderFields(data, mediaF.map((f) => ({ ...f, label: '', hint: '' }) as Field), ctx)),
+      body && step(++n, c.bodyLabel!, 'Пишете както в Word. За заглавие в текста маркирайте реда и натиснете „Заглавие“.', body.el),
+      detailF.length > 0 && step(++n, 'Подробности', c.key === 'posts' ? 'Датата и категорията се попълват сами. Променете ги само ако е нужно.' : '', renderFields(data, detailF, ctx)),
+      extraF.length > 0 && h('details', { class: 'card more' }, h('summary', null, 'Още настройки (по желание)'), renderFields(data, extraF, ctx), del)
+        || (del && h('div', { class: 'card more' }, del)),
+    ),
+    h('div', { class: 'actionbar' },
+      h('div', { class: 'wrap actionbar-in' },
+        h('span', { class: 'ab-note' }, isNew ? 'Новината се появява на сайта 1–2 минути след публикуване.' : 'Промените се виждат на сайта след 1–2 минути.'),
+        h('div', { class: 'ab-btns' }, preview, save),
+      )),
+  );
+  document.body.classList.add('has-actionbar');
+
+  // Keep a local copy of a new entry while it is being written.
+  if (isNew) {
+    let t: number | undefined;
+    const keep = () => {
+      clearTimeout(t);
+      t = window.setTimeout(() => {
+        if (!document.body.contains(save)) return;
+        try { localStorage.setItem(draftKey(c), JSON.stringify({ data, body: body ? swapPreviews(body.value) : '', at: Date.now() })); } catch {}
+      }, 800);
+    };
+    root.addEventListener('input', keep);
+    root.addEventListener('click', keep);
+  }
+}
+
+function previewBox(c: Coll, data: Record<string, any>, html: string) {
+  const img = c.imageKey && data[c.imageKey];
+  const date = c.dateKey && data[c.dateKey];
+  const close = () => back.remove();
+  const back = h('div', { class: 'modal-back', onclick: (e: Event) => e.target === back && close() },
+    h('div', { class: 'modal preview', role: 'dialog', 'aria-modal': 'true' },
+      h('div', { class: 'pv-top' }, h('span', null, 'Преглед: така ще изглежда на сайта'), h('button', { class: 'btn ghost small', onclick: close }, 'Затвори')),
+      h('article', { class: 'pv' },
+        h('p', { class: 'pv-meta' }, [date && fmtDate(date), data.categories?.join(', ')].filter(Boolean).join(' · ')),
+        h('h1', null, data[c.titleKey] || '(без заглавие)'),
+        img && h('img', { class: 'pv-img', src: previews.get(img) || img, alt: '' }),
+        h('div', { class: 'pv-body', html }),
       ),
-      h('aside', { class: 'side' },
-        h('div', { class: 'card' },
-          save,
-          !isNew && c.url && !data.draft && h('a', { class: 'btn ghost', href: c.url(entry!.id), target: '_blank' }, 'Виж на сайта'),
-          c.key === 'posts' && renderFields(data, [{ key: 'draft', label: 'Скрий от сайта (чернова)', type: 'bool' } as Field], ctx),
-        ),
-        h('div', { class: 'card' }, renderFields(data, c.fields.filter((f) => (f.type === 'date' || f.type === 'chips' || f.key === 'order') && f.key !== 'title'), ctx)),
-        h('div', { class: 'card' }, renderFields(data, c.fields.filter((f) => f.type === 'image' || f.type === 'file'), ctx)),
+    ),
+  );
+  document.body.appendChild(back);
+}
+
+function doneView(c: Coll, id: string, title: string, isNew: boolean, hidden: boolean) {
+  shell(isNew ? 'Готово, публикувано!' : 'Промените са запазени',
+    h('div', { class: 'card done' },
+      h('div', { class: 'done-mark' }, '✓'),
+      h('p', null, h('b', null, `„${title}“`)),
+      h('p', { class: 'muted' }, hidden ? 'Записано е като чернова и не се вижда на сайта.' : 'Сайтът се обновява. След 1–2 минути ще се вижда за всички. Горе вдясно пише „Сайтът е актуален“, когато е готово.'),
+      h('div', { class: 'row' },
+        c.url && !hidden && h('a', { class: 'btn', href: c.url(id), target: '_blank' }, 'Виж на сайта'),
+        isNew && h('a', { class: 'btn ghost', href: `#/c/${c.key}/new` }, c.key === 'posts' ? 'Напиши още една' : 'Добави още'),
+        h('a', { class: 'btn ghost', href: '#/' }, 'Към началото'),
       ),
     ),
   );

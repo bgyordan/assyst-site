@@ -2,6 +2,7 @@
 import { h } from './ui';
 import { richEditor } from './editor';
 import { previews } from './previews';
+import { icon } from './icons';
 
 export type Field =
   | { key: string; label: string; type: 'text' | 'textarea' | 'date' | 'number' | 'email' | 'url'; hint?: string; placeholder?: string; big?: boolean }
@@ -21,7 +22,7 @@ export type Ctx = {
 };
 
 const fieldWrap = (f: Field, ...c: (Node | false | undefined)[]) =>
-  h('div', { class: 'field' }, h('label', { class: 'flabel' }, f.label), f.hint ? h('div', { class: 'hint' }, f.hint) : null, ...c);
+  h('div', { class: 'field' }, f.label ? h('label', { class: 'flabel' }, f.label) : null, f.hint ? h('div', { class: 'hint' }, f.hint) : null, ...c);
 
 export function renderFields(obj: any, fields: Field[], ctx: Ctx): HTMLElement {
   return h('div', { class: 'fields' }, fields.map((f) => renderField(obj, f, ctx)));
@@ -71,10 +72,14 @@ export function renderField(obj: any, f: Field, ctx: Ctx): HTMLElement {
     case 'image': case 'file': {
       const isImg = f.type === 'image';
       const preview = h('div', { class: 'drop-preview' });
+      const dropText = h('div', { class: 'drop-text' });
+      const remove = h('button', { type: 'button', class: 'link-btn', onclick: () => { set(''); show(); } }, isImg ? 'Махни снимката' : 'Махни файла');
       const show = () => {
         preview.innerHTML = '';
         const v = obj[f.key];
-        if (!v) { preview.append(h('span', { class: 'muted' }, isImg ? 'Няма снимка' : 'Няма файл')); return; }
+        remove.hidden = !v;
+        dropText.textContent = isImg ? (v ? 'Кликнете, за да смените снимката' : 'Кликнете тук, за да изберете снимка от компютъра (или я плъзнете тук)') : (v ? 'Кликнете, за да смените файла' : 'Кликнете тук, за да изберете файл (или го плъзнете тук)');
+        if (!v) { preview.append(h('span', { class: 'drop-ic' }, icon(isImg ? 'image' : 'upload', 30))); return; }
         preview.append(isImg ? h('img', { src: previews.get(v) || v, alt: '' }) : h('a', { href: v, target: '_blank' }, decodeURIComponent(v.split('/').pop())));
       };
       show();
@@ -93,10 +98,9 @@ export function renderField(obj: any, f: Field, ctx: Ctx): HTMLElement {
         ondrop: (e: DragEvent) => { e.preventDefault(); drop.classList.remove('over'); pick(e.dataTransfer?.files?.[0]); },
       },
         preview,
-        h('div', { class: 'drop-text' }, isImg ? 'Плъзнете снимка тук или кликнете, за да изберете' : 'Плъзнете файл тук или кликнете, за да изберете'),
+        dropText,
         input,
       );
-      const remove = h('button', { type: 'button', class: 'link-btn', onclick: () => { set(''); show(); } }, isImg ? 'Махни снимката' : 'Махни файла');
       return fieldWrap(f, drop, remove);
     }
     case 'strings': {

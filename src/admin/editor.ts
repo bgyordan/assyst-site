@@ -28,18 +28,16 @@ export function richEditor({ value, small, placeholder, onImage }: Opts) {
     if (url) exec('insertHTML', `<p><img src="${previews.get(url) || url}" alt=""></p>`);
   } });
 
+  const isHeading = () => /^h[23]$/i.test(String(document.queryCommandValue('formatBlock') || ''));
   const bar = h('div', { class: 'rte-bar' },
-    btn('<b>Ж</b>', 'Удебелен', () => exec('bold')),
-    btn('<i>К</i>', 'Курсив', () => exec('italic')),
+    btn('<b>Ж</b>', 'Удебелен текст', () => exec('bold')),
+    btn('<i>К</i>', 'Наклонен текст (курсив)', () => exec('italic')),
     h('span', { class: 'rte-sep' }),
-    !small && btn('Заглавие', 'Голямо заглавие', () => exec('formatBlock', 'H2'), 'wide'),
-    !small && btn('Подзаглавие', 'Малко заглавие', () => exec('formatBlock', 'H3'), 'wide'),
-    btn('Текст', 'Обикновен текст', () => exec('formatBlock', 'P'), 'wide'),
+    !small && btn('Заглавие', 'Превръща реда в заглавие (натиснете пак, за да стане обикновен текст)', () => exec('formatBlock', isHeading() ? 'P' : 'H2'), 'wide'),
+    btn('• Списък', 'Списък с точки', () => exec('insertUnorderedList'), 'wide'),
+    !small && btn('1. Списък', 'Номериран списък', () => exec('insertOrderedList'), 'wide'),
     h('span', { class: 'rte-sep' }),
-    btn('Списък', 'Списък с точки', () => exec('insertUnorderedList'), 'wide'),
-    !small && btn('Номериран', 'Номериран списък', () => exec('insertOrderedList'), 'wide'),
-    !small && btn('Цитат', 'Цитат', () => exec('formatBlock', 'BLOCKQUOTE'), 'wide'),
-    btn('Връзка', 'Връзка към сайт или имейл', () => {
+    btn('Връзка', 'Маркирайте текст и натиснете, за да стане връзка', () => {
       const sel = window.getSelection();
       if (!sel || sel.isCollapsed) { alert('Първо маркирайте с мишката текста, който да стане връзка.'); return; }
       let url = prompt('Адрес на връзката (напр. https://… или имейл):', 'https://');
@@ -47,8 +45,9 @@ export function richEditor({ value, small, placeholder, onImage }: Opts) {
       if (/^[^@\s]+@[^@\s]+$/.test(url)) url = 'mailto:' + url;
       exec('createLink', url);
     }, 'wide'),
-    onImage && !small && btn('Снимка', 'Вмъкни снимка', () => fileInput.click(), 'wide'),
-    btn('Изчисти', 'Изчисти форматирането', () => exec('removeFormat'), 'wide'),
+    onImage && !small && btn('Снимка в текста', 'Вмъкни снимка в текста', () => fileInput.click(), 'wide'),
+    h('span', { class: 'rte-grow' }),
+    btn('↶ Отмени', 'Отменя последната промяна', () => exec('undo'), 'wide'),
     fileInput,
   );
 
@@ -68,5 +67,5 @@ export function richEditor({ value, small, placeholder, onImage }: Opts) {
   });
 
   const el = h('div', { class: 'rte' }, bar, area);
-  return { el, get value() { return htmlToMd(area.innerHTML); } };
+  return { el, get value() { return htmlToMd(area.innerHTML); }, get html() { return area.innerHTML; } };
 }
