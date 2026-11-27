@@ -1,0 +1,15 @@
+---
+import { fmtDate, postUrl } from '../lib/util';
+const { post } = Astro.props;
+---
+<article class="post-card">
+  <a href={postUrl(post.id)} class="post-img">
+    {post.data.image ? <img src={post.data.image} alt="" loading="lazy" /> : <div class="post-ph">ASSYST</div>}
+  </a>
+  <div class="post-body">
+    <div class="post-meta"><time datetime={post.data.date.toISOString()}>{fmtDate(post.data.date)}</time>{post.data.categories[0] && <span> · {post.data.categories[0]}</span>}</div>
+    <h3><a href={postUrl(post.id)}>{post.data.title}</a></h3>
+    {post.data.excerpt && <p>{post.data.excerpt.length > 170 ? post.data.excerpt.slice(0, 170).replace(/\s+\S*$/, '') + '…' : post.data.excerpt}</p>}
+    <a href={postUrl(post.id)} class="more">Прочети още →</a>
+  </div>
+</article>

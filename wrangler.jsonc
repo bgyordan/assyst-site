@@ -1,0 +1,23 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "assyst-site",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page",
+    "run_worker_first": ["/api/*", "/admin/config.yml"]
+  },
+  // Contact form e-mail. Uncomment once Cloudflare Email Routing is enabled on assyst.bg
+  // and CONTACT_TO is added and verified as a destination address (see README).
+  // "send_email": [{ "name": "MAIL", "destination_address": "assystbulgaria@gmail.com" }],
+  "vars": {
+    "CONTACT_TO": "assystbulgaria@gmail.com",
+    "CONTACT_FROM": "forma@assyst.bg"
+  }
+  // Secrets (set in the Cloudflare dashboard, never committed):
+  //   GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET  – GitHub OAuth app for /admin
+}

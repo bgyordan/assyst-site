@@ -1,0 +1,165 @@
+---
+import { getCollection, render } from 'astro:content';
+import { accent, md, mdInline, settings, tel, fmtDate, catSlug } from '../lib/util';
+import PostCard from './PostCard.astro';
+import Contacts from './Contacts.astro';
+import ContactForm from './ContactForm.astro';
+const { sections } = Astro.props;
+const posts = (await getCollection('posts', (p) => !p.data.draft)).sort((a, b) => +b.data.date - +a.data.date);
+const team = (await getCollection('team')).sort((a, b) => a.data.order - b.data.order);
+const teamRendered = await Promise.all(team.map(async (t) => ({ t, Content: (await render(t)).Content })));
+const docs = (await getCollection('documents')).sort((a, b) => a.data.order - b.data.order);
+const events = (await getCollection('events')).sort((a, b) => +a.data.start - +b.data.start);
+const pad = (i: number) => String(i + 1).padStart(2, '0');
+const cats = [...new Set(posts.flatMap((p) => p.data.categories))];
+---
+{sections.map((s: any, si: number) => (
+  <section class={`sec sec-${s.type} ${s.style ? 'st-' + s.style : ''}`}>
+    <div class="wrap">
+      {s.label && <div class="label">{s.label}</div>}
+      {s.heading && s.type !== 'cta' && s.type !== 'mission' && <h2 set:html={accent(s.heading)} />}
+
+      {s.type === 'text' && (
+        <div class={s.aside_title || s.aside_items || s.aside_big ? 'split' : 'prose'}>
+          <div class="prose" set:html={md(s.body)} />
+          {(s.aside_title || s.aside_items || s.aside_big) && (
+            <aside class="aside">
+              {s.aside_big && <div class="big">{s.aside_big}</div>}
+              {s.aside_title && (s.aside_big ? <p set:html={mdInline(s.aside_title)} /> : <h3>{s.aside_title}</h3>)}
+              {s.aside_items && <ul class="checks">{s.aside_items.map((i: string) => <li>{i}</li>)}</ul>}
+              {s.aside_contacts && <Contacts />}
+              {s.aside_note && <p class="small">{s.aside_note}</p>}
+            </aside>
+          )}
+        </div>
+      )}
+
+      {s.type === 'cards' && (
+        <>
+          {s.intro && <div class="intro" set:html={md(s.intro)} />}
+          <div class={`cards cols-${s.columns || 3}`}>
+            {(s.items || []).map((it: any, i: number) => {
+              const inner = (
+                <>
+                  {s.style === 'numbered' && <span class="num">{pad(i)}</span>}
+                  {it.meta && <span class="meta">{it.meta}</span>}
+                  {it.title && <h3>{it.title}</h3>}
+                  {it.text && <p set:html={mdInline(it.text)} />}
+                  {it.link && <i class="arrow">→</i>}
+                </>
+              );
+              return it.link ? <a class="card" href={it.link}>{inner}</a> : <div class="card">{inner}</div>;
+            })}
+          </div>
+          {s.note && <div class="note" set:html={mdInline(s.note)} />}
+        </>
+      )}
+
+      {s.type === 'stats' && (
+        <div class="stats">{(s.stats || []).map((it: any) => <div><b>{it.value}</b><span>{it.label}</span></div>)}</div>
+      )}
+
+      {s.type === 'mission' && (
+        <div class="mission">
+          <div>
+            {s.heading && <h2 set:html={accent(s.heading)} />}
+            {s.text && <p>{s.text}</p>}
+          </div>
+          {s.stats && <div class="mission-stats">{s.stats.map((it: any) => <div><b>{it.value}</b><span>{it.label}</span></div>)}</div>}
+        </div>
+      )}
+
+      {s.type === 'list' && (
+        s.style === 'chips'
+          ? <ul class="chips">{(s.items || []).map((i: string) => <li>{i}</li>)}</ul>
+          : <ol class="values">{(s.items || []).map((i: string, n: number) => <li><span class="num">{pad(n)}</span>{i}</li>)}</ol>
+      )}
+
+      {s.type === 'quote' && <blockquote class="quote">{s.text}</blockquote>}
+
+      {s.type === 'cta' && (
+        <div class="cta">
+          {s.heading && <h2 set:html={accent(s.heading)} />}
+          {s.text && <p>{s.text}</p>}
+          {s.buttons && <div class="btns center">{s.buttons.map((b: any) => <a class="btn light" href={b.link}>{b.text}</a>)}</div>}
+          {s.contacts && <Contacts />}
+        </div>
+      )}
+
+      {s.type === 'team' && (
+        <>
+          <div class="team-grid">
+            {team.map((t) => (
+              <a class="member" href={s.profiles ? `#${t.id}` : undefined}>
+                {t.data.photo && <img src={t.data.photo} alt={t.data.name} loading="lazy" />}
+                <span class="meta">{t.data.role}</span>
+                <h3>{t.data.name}</h3>
+                <p>{t.data.short}</p>
+              </a>
+            ))}
+          </div>
+          {s.profiles && teamRendered.map(({ t, Content }) => (
+            <article class="profile" id={t.id}>
+              <div class="profile-side">
+                {t.data.photo && <img src={t.data.photo} alt={t.data.name} loading="lazy" />}
+                <span class="meta">{t.data.role}</span>
+                <h3>{t.data.name}</h3>
+              </div>
+              <div class="profile-body">
+                {t.data.tagline && <div class="label">{t.data.tagline}</div>}
+                <div class="prose"><Content /></div>
+              </div>
+            </article>
+          ))}
+        </>
+      )}
+
+      {s.type === 'documents' && (
+        <div class="docs">
+          {docs.map((d, i) => {
+            const inner = (<><span class="num">{pad(i)}</span><div><h3>{d.data.title}</h3><p>{d.data.description}</p></div><span class={d.data.file ? 'badge ok' : 'badge'}>{d.data.file ? 'Изтегли →' : 'Предстои'}</span></>);
+            return d.data.file ? <a class="doc" href={d.data.file} target="_blank" rel="noopener">{inner}</a> : <div class="doc off">{inner}</div>;
+          })}
+        </div>
+      )}
+
+      {s.type === 'events' && (
+        <div class="events">
+          {events.map((e) => (
+            <a class="event" href={`/event/${e.id}/`}>
+              <span class="edate"><b>{e.data.start.getUTCDate()}</b>{fmtDate(e.data.start).split(' ').slice(1).join(' ')}</span>
+              <span><h3>{e.data.title}</h3>{e.data.location && <p>{e.data.location}</p>}</span>
+            </a>
+          ))}
+        </div>
+      )}
+
+      {s.type === 'posts' && (
+        <>
+          {s.filters && cats.length > 1 && (
+            <div class="filters">
+              <a href="/blog/" class="chip on">Всички</a>
+              {cats.map((c) => <a class="chip" href={`/category/${catSlug(c)}/`}>{c}</a>)}
+              <a class="chip" href="/events/">Събития</a>
+            </div>
+          )}
+          <div class="posts">{posts.slice(0, s.count || 3).map((p) => <PostCard post={p} />)}</div>
+          {(s.count || 3) < posts.length && <div class="btns center"><a class="btn ghost-dark" href="/blog/">Всички публикации →</a></div>}
+        </>
+      )}
+
+      {s.type === 'contact' && (
+        <div class="contact-grid">
+          <div class="contact-info">
+            <h3>Обадете ни се</h3>
+            <a class="big-link" href={tel(settings.phone)}>{settings.phone}</a>
+            <h3>Изпратете ни съобщение</h3>
+            <a class="big-link" href={`mailto:${settings.email}`}>{settings.email}</a>
+            {settings.facebook && <><h3>Последвайте ни</h3><a class="big-link" href={settings.facebook} target="_blank" rel="noopener">Facebook</a></>}
+          </div>
+          <div class="contact-form"><h3>Свържете се с нас</h3><ContactForm /></div>
+        </div>
+      )}
+    </div>
+  </section>
+))}

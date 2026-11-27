@@ -1,0 +1,18 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import PostCard from '../../components/PostCard.astro';
+import { settings } from '../../lib/util';
+export async function getStaticPaths() {
+  return settings.categories.map((c) => ({ params: { cat: c.slug }, props: { name: c.name } }));
+}
+const { name } = Astro.props;
+const posts = (await getCollection('posts', (p) => !p.data.draft && p.data.categories.includes(name))).sort((a, b) => +b.data.date - +a.data.date);
+---
+<Base title={name} description={`${name} – блог на ${settings.site_name}`}>
+  <section class="hero"><div class="wrap"><div class="label"><a href="/blog/">Блог</a></div><h1>{name}</h1></div></section>
+  <section class="sec"><div class="wrap">
+    <div class="filters"><a href="/blog/" class="chip">Всички</a>{settings.categories.map((c) => <a class={c.name === name ? 'chip on' : 'chip'} href={`/category/${c.slug}/`}>{c.name}</a>)}</div>
+    {posts.length ? <div class="posts">{posts.map((p) => <PostCard post={p} />)}</div> : <p>Все още няма публикации в тази категория.</p>}
+  </div></section>
+</Base>

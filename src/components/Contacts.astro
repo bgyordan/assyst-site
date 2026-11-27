@@ -1,0 +1,7 @@
+---
+import { settings, tel } from '../lib/util';
+---
+<div class="contacts-inline">
+  <a href={`mailto:${settings.email}`}>{settings.email}</a>
+  <a href={tel(settings.phone)}>{settings.phone}</a>
+</div>

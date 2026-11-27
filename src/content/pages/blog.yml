@@ -1,0 +1,13 @@
+title: Блог
+slug: blog
+description: Новини, статии, обучения и събития на ASSYST BULGARIA.
+hero:
+  label: Новини и статии
+  title: Блог
+sections:
+  - type: posts
+    count: 100
+    filters: true
+  - type: events
+    label: Обучения и събития
+    heading: Календар

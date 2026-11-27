@@ -1,0 +1,85 @@
+---
+import '@fontsource/montserrat/latin-400.css';
+import '@fontsource/montserrat/cyrillic-400.css';
+import '@fontsource/montserrat/latin-600.css';
+import '@fontsource/montserrat/cyrillic-600.css';
+import '@fontsource/montserrat/latin-700.css';
+import '@fontsource/montserrat/cyrillic-700.css';
+import '@fontsource/source-serif-4/latin-300.css';
+import '@fontsource/source-serif-4/cyrillic-300.css';
+import '@fontsource/source-serif-4/latin-300-italic.css';
+import '@fontsource/source-serif-4/cyrillic-300-italic.css';
+import '@fontsource/source-serif-4/latin-400.css';
+import '@fontsource/source-serif-4/cyrillic-400.css';
+import '../styles/site.css';
+import { settings, tel } from '../lib/util';
+interface Props { title: string; description?: string; image?: string; }
+const { title, description, image } = Astro.props;
+const path = decodeURI(Astro.url.pathname);
+const fullTitle = title === 'Начало' ? `${settings.site_name} – ${settings.tagline}` : `${title} – ${settings.site_name}`;
+const isActive = (link: string) => (link === '/' ? path === '/' : path.startsWith(link));
+const year = new Date().getFullYear();
+---
+<!doctype html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{fullTitle}</title>
+  {description && <meta name="description" content={description} />}
+  <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="bg_BG" />
+  <meta property="og:site_name" content={settings.site_name} />
+  <meta property="og:title" content={fullTitle} />
+  {description && <meta property="og:description" content={description} />}
+  {image && <meta property="og:image" content={new URL(image, Astro.site)} />}
+  <link rel="icon" href={settings.logo} />
+  <link rel="alternate" type="application/rss+xml" title={settings.site_name} href="/feed/" />
+</head>
+<body>
+  <a class="skip" href="#main">Към съдържанието</a>
+  <div class="topbar">
+    <div class="wrap">
+      <a href={tel(settings.phone)}>{settings.phone}</a>
+      <a href={`mailto:${settings.email}`}>{settings.email}</a>
+      {settings.facebook && <a href={settings.facebook} target="_blank" rel="noopener" aria-label="Facebook">Facebook</a>}
+    </div>
+  </div>
+  <header class="header">
+    <div class="wrap header-in">
+      <a href="/" class="logo"><img src={settings.logo} alt={settings.site_name} width="90" height="45" /></a>
+      <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-label="Меню" />
+      <label for="nav-toggle" class="burger" aria-hidden="true"><span></span></label>
+      <nav class="nav" aria-label="Основно меню">
+        <ul>
+          {settings.menu.map((m) => (
+            <li class={m.children?.length ? 'has-sub' : ''}>
+              <a href={m.link} class={isActive(m.link) ? 'active' : ''}>{m.text}</a>
+              {m.children?.length && (
+                <ul class="sub">{m.children.map((c) => <li><a href={c.link} class={isActive(c.link) ? 'active' : ''}>{c.text}</a></li>)}</ul>
+              )}
+            </li>
+          ))}
+        </ul>
+        {settings.donate_button && <a class="donate" href={settings.donate_button.link}>{settings.donate_button.text}</a>}
+      </nav>
+    </div>
+  </header>
+  <main id="main"><slot /></main>
+  <footer class="footer">
+    <div class="wrap footer-in">
+      <div>
+        <img src={settings.logo} alt="" width="80" height="40" class="footer-logo" />
+        <p>{settings.footer_text.replace('{year}', String(year))}</p>
+      </div>
+      <div class="footer-links">
+        <a href={tel(settings.phone)}>{settings.phone}</a>
+        <a href={`mailto:${settings.email}`}>{settings.email}</a>
+        {settings.facebook && <a href={settings.facebook} target="_blank" rel="noopener">Facebook</a>}
+        <a href="/privacy-policy/">Политика за поверителност</a>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

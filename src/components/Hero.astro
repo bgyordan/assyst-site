@@ -1,0 +1,46 @@
+---
+import { accent, md, mdInline } from '../lib/util';
+const { hero } = Astro.props;
+const isImage = hero.style === 'image' && hero.image;
+---
+{isImage ? (
+  <section class="hero-img">
+    <div class="hero-bg" style={`background-image:url('${hero.image}')`}></div>
+    <div class="hero-shade"></div>
+    <div class="wrap hero-img-in">
+      <div class="hero-left">
+        {hero.label && <div class="label light dot">{hero.label}</div>}
+        <h1 set:html={accent(hero.title)} />
+        {hero.text && <div class="hero-text" set:html={md(hero.text)} />}
+        {hero.buttons && <div class="btns">{hero.buttons.map((b) => <a class={b.outline ? 'btn ghost' : 'btn'} href={b.link}>{b.text}</a>)}</div>}
+      </div>
+      {hero.links && (
+        <div class="hero-links">
+          {hero.links.map((l) => (
+            <a href={l.link} class="glass"><strong>{l.title}</strong><span>{l.text}</span><i>→</i></a>
+          ))}
+        </div>
+      )}
+    </div>
+    {hero.stats && (
+      <div class="hero-stats"><div class="wrap">{hero.stats.map((s) => <div><b>{s.value}</b><span>{s.label}</span></div>)}</div></div>
+    )}
+  </section>
+) : (
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div class="hero-head">
+        {hero.watermark && <div class="watermark" aria-hidden="true">{hero.watermark}</div>}
+        {hero.label && <div class="label">{hero.label}</div>}
+        <h1 set:html={accent(hero.title)} />
+        {hero.subtitle && <p class="subtitle">{hero.subtitle}</p>}
+      </div>
+      {(hero.text || hero.buttons) && (
+        <div class="hero-body">
+          {hero.text && <div class="lead" set:html={md(hero.text)} />}
+          {hero.buttons && <div class="btns">{hero.buttons.map((b) => <a class={b.outline ? 'btn ghost' : 'btn'} href={b.link}>{b.text}</a>)}</div>}
+        </div>
+      )}
+    </div>
+  </section>
+)}

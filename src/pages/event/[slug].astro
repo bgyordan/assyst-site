@@ -1,0 +1,28 @@
+---
+import { getCollection, render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import { fmtDate } from '../../lib/util';
+export async function getStaticPaths() {
+  return (await getCollection('events')).map((e) => ({ params: { slug: e.id }, props: { e } }));
+}
+const { e } = Astro.props;
+const { Content } = await render(e);
+const d = e.data;
+const when = d.end && +d.end !== +d.start ? `${fmtDate(d.start)} – ${fmtDate(d.end)}` : fmtDate(d.start);
+---
+<Base title={d.title} image={d.image}>
+  <article class="article">
+    <header class="article-head wrap narrow">
+      <div class="label"><a href="/events/">Събития</a></div>
+      <h1>{d.title}</h1>
+      <div class="event-facts">
+        <span>📅 {when}{d.time && `, ${d.time}`}</span>
+        {d.location && <span>📍 {d.location}</span>}
+      </div>
+    </header>
+    {d.image && <figure class="article-img wrap narrow"><img src={d.image} alt="" /></figure>}
+    <div class="prose wrap narrow"><Content />
+      {d.link && <p><a class="btn" href={d.link} target="_blank" rel="noopener">Регистрация / повече информация</a></p>}
+    </div>
+  </article>
+</Base>

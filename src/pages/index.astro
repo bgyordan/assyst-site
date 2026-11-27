@@ -1,0 +1,11 @@
+---
+import { getEntry } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import Hero from '../components/Hero.astro';
+import Sections from '../components/Sections.astro';
+const page = (await getEntry('pages', 'home'))!;
+---
+<Base title={page.data.title} description={page.data.description} image={page.data.hero.image}>
+  <Hero hero={page.data.hero} />
+  <Sections sections={page.data.sections} />
+</Base>

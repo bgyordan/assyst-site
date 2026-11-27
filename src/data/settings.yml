@@ -1,0 +1,24 @@
+site_name: ASSYST BULGARIA
+tagline: Психологическа подкрепа и EMDR терапия
+logo: /logo.png
+phone: +359 896 878 305
+email: assystbulgaria@gmail.com
+facebook: https://www.facebook.com/profile.php?id=61573364764431
+footer_text: © {year} - Асист – България
+menu:
+  - { text: Начало, link: / }
+  - { text: ASSYST, link: /assyst/ }
+  - text: За нас
+    link: /about-us/
+    children:
+      - { text: Екип, link: /екип/ }
+      - { text: Документи, link: /dokumenti/ }
+  - { text: Блог, link: /blog/ }
+  - { text: Кризисна помощ, link: /krizisna/ }
+  - { text: Контакти, link: /kontakti/ }
+donate_button: { text: Дари, link: /dari/ }
+categories:
+  - { name: Новини, slug: novini }
+  - { name: Публикации, slug: publikacii }
+  - { name: Статии, slug: statii }
+  - { name: Обучения и събития, slug: obucheniya-i-sabitiya }

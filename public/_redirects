@@ -1,0 +1,7 @@
+/feed/ /feed.xml 301
+/sitemap_index.xml /sitemap.xml 301
+/wp-admin /admin/ 302
+/wp-admin/ /admin/ 302
+/wp-login.php /admin/ 302
+/home/ / 301
+/wp-content/uploads/* /uploads/:splat 301

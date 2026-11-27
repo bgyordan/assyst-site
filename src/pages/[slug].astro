@@ -1,0 +1,44 @@
+---
+import { getCollection, render } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import Hero from '../components/Hero.astro';
+import Sections from '../components/Sections.astro';
+import PostCard from '../components/PostCard.astro';
+import { md, fmtDate, catSlug } from '../lib/util';
+
+export async function getStaticPaths() {
+  const pages = (await getCollection('pages')).filter((p) => p.id !== 'home');
+  const posts = (await getCollection('posts', (p) => !p.data.draft)).sort((a, b) => +b.data.date - +a.data.date);
+  return [
+    ...pages.map((p) => ({ params: { slug: p.id }, props: { kind: 'page', entry: p } })),
+    ...posts.map((p, i) => ({ params: { slug: p.id }, props: { kind: 'post', entry: p, related: posts.filter((x) => x.id !== p.id).slice(0, 3) } })),
+  ];
+}
+const { kind, entry, related } = Astro.props as any;
+const Content = kind === 'post' ? (await render(entry)).Content : null;
+---
+{kind === 'page' ? (
+  <Base title={entry.data.title} description={entry.data.description} image={entry.data.hero.image}>
+    <Hero hero={entry.data.hero} />
+    {entry.data.body && <section class="sec"><div class="wrap prose narrow" set:html={md(entry.data.body)} /></section>}
+    <Sections sections={entry.data.sections} />
+  </Base>
+) : (
+  <Base title={entry.data.title} description={entry.data.excerpt} image={entry.data.image}>
+    <article class="article">
+      <header class="article-head wrap narrow">
+        <div class="label">
+          <a href="/blog/">Блог</a>
+          {entry.data.categories.map((c: string) => <> · <a href={`/category/${catSlug(c)}/`}>{c}</a></>)}
+        </div>
+        <h1>{entry.data.title}</h1>
+        <time datetime={entry.data.date.toISOString()}>{fmtDate(entry.data.date)}</time>
+      </header>
+      {entry.data.image && <figure class="article-img wrap narrow"><img src={entry.data.image} alt="" /></figure>}
+      <div class="prose wrap narrow"><Content /></div>
+    </article>
+    {related.length > 0 && (
+      <section class="sec"><div class="wrap"><div class="label">Още от блога</div><div class="posts">{related.map((p: any) => <PostCard post={p} />)}</div></div></section>
+    )}
+  </Base>
+)}
