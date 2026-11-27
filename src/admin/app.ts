@@ -31,14 +31,16 @@ function shell(title: string, ...content: (Node | false | null | undefined)[]) {
       h('div', { class: 'top-right' },
         statusEl,
         h('a', { class: 'top-link', href: '/', target: '_blank' }, h('span', null, 'Виж сайта'), icon('ext', 15)),
-        user && h('button', { class: 'user', title: 'Изход', onclick: async () => { await api.logout(); location.reload(); } },
-          h('span', null, user.name || user.login), icon('out', 16)),
+        user && h('details', { class: 'user-menu' },
+          h('summary', { class: 'user' }, h('span', null, user.name || user.login), h('span', { class: 'caret' })),
+          h('div', { class: 'menu' },
+            user.kind === 'pw' && h('a', { href: '#/account' }, 'Смяна на паролата'),
+            user.kind === 'github' && h('a', { href: '/admin/pro/' }, 'Разширен режим'),
+            h('button', { onclick: async () => { await api.logout(); location.reload(); } }, icon('out', 15), 'Изход'),
+          )),
       ),
     ),
     h('main', { class: 'wrap' }, ...(content[0] instanceof HTMLAnchorElement && content[0].classList.contains('back') ? [content.shift()!, h('h1', null, title)] : [h('h1', null, title)]), ...content),
-    h('footer', { class: 'foot' }, user?.kind === 'pw'
-      ? h('a', { href: '#/account' }, 'Смяна на паролата')
-      : ['Нужно е нещо по-сложно? ', h('a', { href: '/admin/pro/' }, 'Разширен режим')]),
   );
   window.scrollTo(0, 0);
 }
@@ -564,3 +566,8 @@ function accountView() {
   refreshStatus();
   route();
 })();
+
+// Close the header menu when clicking elsewhere.
+document.addEventListener('click', (e) => {
+  document.querySelectorAll<HTMLDetailsElement>('.user-menu[open]').forEach((d) => { if (!d.contains(e.target as Node)) d.open = false; });
+});

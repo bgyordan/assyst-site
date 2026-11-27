@@ -222,3 +222,12 @@ fieldset.group legend { font-weight: 500; color: var(--ink); padding: 0 6px; }
 .notice small { color: var(--muted); font-size: .8rem; }
 .small-note { font-size: .85rem; margin-top: 14px; }
 .narrow-card { max-width: 480px; }
+
+/* user menu in the header */
+.user-menu { position: relative; }
+.user-menu > summary { list-style: none; }
+.user-menu > summary::-webkit-details-marker { display: none; }
+.caret { width: 6px; height: 6px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg) translateY(-2px); margin-left: 4px; }
+.user-menu .menu { position: absolute; right: 0; top: calc(100% + 12px); background: #fff; border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 12px 32px rgba(10, 29, 59, .14); padding: 6px; min-width: 200px; display: flex; flex-direction: column; z-index: 30; }
+.user-menu .menu a, .user-menu .menu button { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-radius: 8px; color: var(--ink); text-decoration: none; background: none; border: 0; font: inherit; font-size: .9rem; cursor: pointer; text-align: left; }
+.user-menu .menu a:hover, .user-menu .menu button:hover { background: var(--bg); }
