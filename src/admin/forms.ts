@@ -75,7 +75,7 @@ export function renderField(obj: any, f: Field, ctx: Ctx): HTMLElement {
         preview.innerHTML = '';
         const v = obj[f.key];
         if (!v) { preview.append(h('span', { class: 'muted' }, isImg ? 'Няма снимка' : 'Няма файл')); return; }
-        preview.append(isImg ? h('img', { src: previews.get(v) || v, alt: '' }) : h('a', { href: v, target: '_blank' }, '📄 ' + decodeURIComponent(v.split('/').pop())));
+        preview.append(isImg ? h('img', { src: previews.get(v) || v, alt: '' }) : h('a', { href: v, target: '_blank' }, decodeURIComponent(v.split('/').pop())));
       };
       show();
       const input = h('input', { type: 'file', accept: isImg ? 'image/*' : (f as any).accept || '.pdf,.doc,.docx,.xls,.xlsx', hidden: true, onchange: () => pick(input.files?.[0]) });
@@ -93,7 +93,7 @@ export function renderField(obj: any, f: Field, ctx: Ctx): HTMLElement {
         ondrop: (e: DragEvent) => { e.preventDefault(); drop.classList.remove('over'); pick(e.dataTransfer?.files?.[0]); },
       },
         preview,
-        h('div', { class: 'drop-text' }, isImg ? '📷 Плъзнете снимка тук или кликнете, за да изберете' : '📎 Плъзнете файл тук или кликнете, за да изберете'),
+        h('div', { class: 'drop-text' }, isImg ? 'Плъзнете снимка тук или кликнете, за да изберете' : 'Плъзнете файл тук или кликнете, за да изберете'),
         input,
       );
       const remove = h('button', { type: 'button', class: 'link-btn', onclick: () => { set(''); show(); } }, isImg ? 'Махни снимката' : 'Махни файла');
@@ -109,7 +109,7 @@ export function renderField(obj: any, f: Field, ctx: Ctx): HTMLElement {
           list.append(h('div', { class: 'row' }, inp,
             h('button', { type: 'button', class: 'icon-btn', title: 'Премахни', onclick: () => { arr.splice(i, 1); ctx.dirty(); draw(); } }, '✕')));
         });
-        list.append(h('button', { type: 'button', class: 'btn ghost small', onclick: () => { arr.push(''); ctx.dirty(); draw(); (list.querySelector('.row:last-of-type input') as HTMLInputElement)?.focus(); } }, '＋ ' + (f.addLabel || 'Добави ред')));
+        list.append(h('button', { type: 'button', class: 'btn ghost small', onclick: () => { arr.push(''); ctx.dirty(); draw(); (list.querySelector('.row:last-of-type input') as HTMLInputElement)?.focus(); } }, '+ ' + (f.addLabel || 'Добави ред')));
       };
       draw();
       return fieldWrap(f, list);
@@ -137,7 +137,7 @@ export function renderField(obj: any, f: Field, ctx: Ctx): HTMLElement {
             renderFields(item, f.fields, ctx),
           ));
         });
-        box.append(h('button', { type: 'button', class: 'btn ghost small', onclick: () => { arr.push({}); ctx.dirty(); draw(); } }, `＋ Добави ${f.itemLabel.toLowerCase()}`));
+        box.append(h('button', { type: 'button', class: 'btn ghost small', onclick: () => { arr.push({}); ctx.dirty(); draw(); } }, `+ Добави ${f.itemLabel.toLowerCase()}`));
       };
       draw();
       return fieldWrap(f, box);

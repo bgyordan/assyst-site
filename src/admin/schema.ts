@@ -50,13 +50,13 @@ export const SECTION_TYPES: Record<string, { name: string; icon: string; desc: s
     heading, { key: 'text', label: 'Текст', type: 'textarea' }, buttons,
     { key: 'contacts', label: 'Покажи телефона и имейла', type: 'bool' },
   ] },
-  team: { name: 'Екипът', icon: '👥', desc: 'Показва хората от раздел „Екип“', fields: [label, heading, { key: 'profiles', label: 'Покажи и пълните биографии', type: 'bool' }] },
-  documents: { name: 'Документите', icon: '📄', desc: 'Показва файловете от раздел „Документи“', fields: [label, heading] },
-  posts: { name: 'Последни новини', icon: '📰', desc: 'Показва последните публикации', fields: [
+  team: { name: 'Екипът', icon: 'users', desc: 'Показва хората от раздел „Екип“', fields: [label, heading, { key: 'profiles', label: 'Покажи и пълните биографии', type: 'bool' }] },
+  documents: { name: 'Документите', icon: 'file', desc: 'Показва файловете от раздел „Документи“', fields: [label, heading] },
+  posts: { name: 'Последни новини', icon: 'news', desc: 'Показва последните публикации', fields: [
     label, heading, { key: 'count', label: 'Колко да се показват', type: 'number' },
     { key: 'filters', label: 'Покажи бутони за категориите', type: 'bool' },
   ] },
-  events: { name: 'Събития', icon: '📅', desc: 'Показва събитията', fields: [label, heading] },
+  events: { name: 'Събития', icon: 'calendar', desc: 'Показва събитията', fields: [label, heading] },
   contact: { name: 'Форма за контакт', icon: '✉️', desc: 'Телефон, имейл и форма за съобщение', fields: [label] },
 };
 
@@ -91,7 +91,7 @@ export type Coll = {
 };
 
 export const COLLECTIONS: Coll[] = [
-  { key: 'posts', name: 'Новини и статии', one: 'новина', dir: 'src/content/posts', ext: 'md', icon: '📰', addLabel: 'Напиши новина',
+  { key: 'posts', name: 'Новини и статии', one: 'новина', dir: 'src/content/posts', ext: 'md', icon: 'news', addLabel: 'Напиши новина',
     titleKey: 'title', dateKey: 'date', imageKey: 'image', url: (id) => `/${id}/`, sortKey: 'date', sortDesc: true,
     bodyLabel: 'Текст на новината',
     defaults: () => ({ date: new Date().toISOString().slice(0, 10), categories: ['Новини'] }),
@@ -101,7 +101,7 @@ export const COLLECTIONS: Coll[] = [
       { key: 'categories', label: 'Категория', type: 'chips', options: CATEGORIES, hint: 'Изберете една или повече.' },
       { key: 'image', label: 'Главна снимка', type: 'image', hint: 'Показва се в списъка с новини и най-горе в статията.' },
     ] },
-  { key: 'events', name: 'Събития и обучения', one: 'събитие', dir: 'src/content/events', ext: 'md', icon: '📅', addLabel: 'Добави събитие',
+  { key: 'events', name: 'Събития и обучения', one: 'събитие', dir: 'src/content/events', ext: 'md', icon: 'calendar', addLabel: 'Добави събитие',
     titleKey: 'title', dateKey: 'start', imageKey: 'image', url: (id) => `/event/${id}/`, sortKey: 'start', sortDesc: true,
     bodyLabel: 'Описание на събитието',
     defaults: () => ({ start: new Date().toISOString().slice(0, 10) }),
@@ -114,7 +114,7 @@ export const COLLECTIONS: Coll[] = [
       { key: 'image', label: 'Снимка', type: 'image' },
       { key: 'link', label: 'Връзка за записване (по желание)', type: 'url', placeholder: 'https://…' },
     ] },
-  { key: 'team', name: 'Екип', one: 'член на екипа', dir: 'src/content/team', ext: 'md', icon: '👥', addLabel: 'Добави човек',
+  { key: 'team', name: 'Екип', one: 'член на екипа', dir: 'src/content/team', ext: 'md', icon: 'users', addLabel: 'Добави човек',
     titleKey: 'name', imageKey: 'photo', sortKey: 'order', bodyLabel: 'Биография',
     defaults: () => ({ order: 10 }),
     fields: [
@@ -125,7 +125,7 @@ export const COLLECTIONS: Coll[] = [
       { key: 'photo', label: 'Снимка', type: 'image' },
       { key: 'order', label: 'Подредба (1 = първи)', type: 'number' },
     ] },
-  { key: 'documents', name: 'Документи', one: 'документ', dir: 'src/content/documents', ext: 'yml', icon: '📄', addLabel: 'Качи документ',
+  { key: 'documents', name: 'Документи', one: 'документ', dir: 'src/content/documents', ext: 'yml', icon: 'file', addLabel: 'Качи документ',
     titleKey: 'title', sortKey: 'order',
     defaults: () => ({ order: 10 }),
     fields: [

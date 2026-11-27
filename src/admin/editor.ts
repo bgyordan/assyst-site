@@ -36,10 +36,10 @@ export function richEditor({ value, small, placeholder, onImage }: Opts) {
     !small && btn('Подзаглавие', 'Малко заглавие', () => exec('formatBlock', 'H3'), 'wide'),
     btn('Текст', 'Обикновен текст', () => exec('formatBlock', 'P'), 'wide'),
     h('span', { class: 'rte-sep' }),
-    btn('• Списък', 'Списък с точки', () => exec('insertUnorderedList'), 'wide'),
-    !small && btn('1. Списък', 'Номериран списък', () => exec('insertOrderedList'), 'wide'),
-    !small && btn('❝ Цитат', 'Цитат', () => exec('formatBlock', 'BLOCKQUOTE'), 'wide'),
-    btn('🔗 Връзка', 'Връзка към сайт или имейл', () => {
+    btn('Списък', 'Списък с точки', () => exec('insertUnorderedList'), 'wide'),
+    !small && btn('Номериран', 'Номериран списък', () => exec('insertOrderedList'), 'wide'),
+    !small && btn('Цитат', 'Цитат', () => exec('formatBlock', 'BLOCKQUOTE'), 'wide'),
+    btn('Връзка', 'Връзка към сайт или имейл', () => {
       const sel = window.getSelection();
       if (!sel || sel.isCollapsed) { alert('Първо маркирайте с мишката текста, който да стане връзка.'); return; }
       let url = prompt('Адрес на връзката (напр. https://… или имейл):', 'https://');
@@ -47,8 +47,8 @@ export function richEditor({ value, small, placeholder, onImage }: Opts) {
       if (/^[^@\s]+@[^@\s]+$/.test(url)) url = 'mailto:' + url;
       exec('createLink', url);
     }, 'wide'),
-    onImage && !small && btn('🖼 Снимка', 'Вмъкни снимка', () => fileInput.click(), 'wide'),
-    btn('⌫', 'Изчисти форматирането', () => exec('removeFormat')),
+    onImage && !small && btn('Снимка', 'Вмъкни снимка', () => fileInput.click(), 'wide'),
+    btn('Изчисти', 'Изчисти форматирането', () => exec('removeFormat'), 'wide'),
     fileInput,
   );
 
