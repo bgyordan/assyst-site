@@ -18,8 +18,11 @@ const cats = [...new Set(posts.flatMap((p) => p.data.categories))];
     <div class="wrap">
       {(s.label || (s.heading && s.type !== 'cta' && s.type !== 'mission')) && (
         <header class="sec-head">
-          {s.label && <div class="label">{s.label}</div>}
-          {s.heading && s.type !== 'cta' && s.type !== 'mission' && <h2 set:html={accent(s.heading)} />}
+          <div>
+            {s.label && <div class="label">{s.label}</div>}
+            {s.heading && s.type !== 'cta' && s.type !== 'mission' && <h2 set:html={accent(s.heading)} />}
+          </div>
+          {s.type === 'posts' && !s.filters && <a class="sec-more" href="/blog/">Всички публикации <span aria-hidden="true">→</span></a>}
         </header>
       )}
 
@@ -154,7 +157,6 @@ const cats = [...new Set(posts.flatMap((p) => p.data.categories))];
             </div>
           )}
           <div class="posts">{posts.slice(0, s.count || 3).map((p) => <PostCard post={p} />)}</div>
-          {(s.count || 3) < posts.length && <div class="btns center"><a class="btn ghost-dark" href="/blog/">Всички публикации →</a></div>}
         </>
       )}
 
