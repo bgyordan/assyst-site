@@ -391,4 +391,20 @@ main:has(> .sec:last-child:is(.sec-team, .sec-quote, .sec-cards.st-links)) + .fo
   .prose table { display: block; overflow-x: auto; }
   .cookie-note { right: 16px; max-width: none; }
 }
-.footer .btn, .footer .btn:hover { color: #fff; }
+
+/* Тъмносиньото от логото за горната лента и футъра */
+:root { --brand: #133d8f; --brand-d: #0f3177; }
+.crisis { background: var(--brand); color: rgba(255, 255, 255, .82); border-bottom: 0; }
+.crisis .bilateral { color: var(--teal-l); }
+.crisis a, .crisis-112 b { color: #fff; }
+.crisis a:hover { color: var(--teal-l); }
+.footer { background: var(--brand); color: rgba(255, 255, 255, .75); border-top: 0; }
+.footer h4 { color: #fff; }
+.footer a { color: rgba(255, 255, 255, .9); }
+.footer a:hover { color: var(--teal-l); }
+.footer-logo { background: #fff; border-radius: 10px; padding: 6px 10px; height: 52px; }
+.footer-help { background: rgba(255, 255, 255, .07); border-color: rgba(255, 255, 255, .16); }
+.footer-help b { color: #fff; }
+.footer .btn { background: #fff; border-color: #fff; color: var(--brand); }
+.footer .btn:hover { background: var(--paper); border-color: var(--paper); color: var(--brand); }
+.footer-bottom { border-top-color: rgba(255, 255, 255, .16); }
