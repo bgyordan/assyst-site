@@ -392,9 +392,9 @@ main:has(> .sec:last-child:is(.sec-team, .sec-quote, .sec-cards.st-links)) + .fo
   .cookie-note { right: 16px; max-width: none; }
 }
 
-/* Тъмносиньото от логото за горната лента и футъра */
-:root { --brand: #133d8f; --brand-d: #0f3177; }
-.crisis { background: var(--brand); color: rgba(255, 255, 255, .82); border-bottom: 0; }
+/* Тъмно нейви (както в стария сайт) за горната лента и футъра */
+:root { --brand: #0a1d3b; --brand-d: #071630; }
+.crisis { background: var(--brand); color: rgba(255, 255, 255, .82); border-bottom: 1px solid rgba(255, 255, 255, .08); }
 .crisis .bilateral { color: var(--teal-l); }
 .crisis a, .crisis-112 b { color: #fff; }
 .crisis a:hover { color: var(--teal-l); }
