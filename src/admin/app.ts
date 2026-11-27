@@ -242,8 +242,8 @@ async function editView(c: Coll, fileName?: string, restored?: { data: Record<st
   body?.el.addEventListener('input', () => { dirty = true; });
 
   const titleF = c.fields.filter((f) => f.key === c.titleKey);
-  const mediaF = c.fields.filter((f) => f.type === 'image' || f.type === 'file');
-  const detailF = c.fields.filter((f) => f.key !== c.titleKey && f.type !== 'image' && f.type !== 'file' && f.key !== 'order');
+  const mediaF = c.fields.filter((f) => f.type === 'image' || f.type === 'file' || f.type === 'photos');
+  const detailF = c.fields.filter((f) => f.key !== c.titleKey && f.type !== 'image' && f.type !== 'file' && f.type !== 'photos' && f.key !== 'order');
   const extraF: Field[] = [
     ...(c.key === 'posts' ? [{ key: 'excerpt', label: 'Кратко резюме', type: 'textarea', hint: 'Показва се в списъка с новини и в Google. Ако е празно, се взима началото на текста.' } as Field] : []),
     ...c.fields.filter((f) => f.key === 'order'),
@@ -290,7 +290,7 @@ async function editView(c: Coll, fileName?: string, restored?: { data: Record<st
       : isNew ? h('p', { class: 'lead small' }, 'Попълнете стъпките отгоре надолу и натиснете „Публикувай“ най-долу. Докато пишете, всичко се пази на този компютър.') : null,
     h('div', { class: 'steps' },
       step(++n, c.key === 'team' ? 'Име' : 'Заглавие', c.key === 'posts' ? 'Кратко и ясно, както би стояло във вестник.' : '', renderFields(data, titleF.map((f) => ({ ...f, label: '' }) as Field), ctx)),
-      media && step(++n, media.type === 'image' ? 'Снимка' : 'Файл', media.type === 'image' ? 'Една хубава хоризонтална снимка. Ще я смалим автоматично.' : 'PDF или Word файл.', renderFields(data, mediaF.map((f) => ({ ...f, label: '', hint: '' }) as Field), ctx)),
+      media && step(++n, media.type === 'photos' ? 'Снимки' : media.type === 'image' ? 'Снимка' : 'Файл', media.type === 'photos' ? 'Качете една или повече снимки. Със звездичката изберете главната. Снимките се смаляват автоматично.' : media.type === 'image' ? 'Една хубава снимка. Ще я смалим автоматично.' : 'PDF или Word файл.', renderFields(data, mediaF.map((f) => ({ ...f, label: '', hint: '' }) as Field), ctx)),
       body && step(++n, c.bodyLabel!, 'Пишете както в Word. За заглавие в текста маркирайте реда и натиснете „Заглавие“.', body.el),
       detailF.length > 0 && step(++n, 'Подробности', c.key === 'posts' ? 'Датата и категорията се попълват сами. Променете ги само ако е нужно.' : '', renderFields(data, detailF, ctx)),
       extraF.length > 0 && h('details', { class: 'card more' }, h('summary', null, 'Още настройки (по желание)'), renderFields(data, extraF, ctx), del)
@@ -331,6 +331,7 @@ function previewBox(c: Coll, data: Record<string, any>, html: string) {
         h('h1', null, data[c.titleKey] || '(без заглавие)'),
         img && h('img', { class: 'pv-img', src: previews.get(img) || img, alt: '' }),
         h('div', { class: 'pv-body', html }),
+        Array.isArray(data.gallery) && data.gallery.length > 0 && h('div', { class: 'pv-gallery' }, data.gallery.map((u: string) => h('img', { src: previews.get(u) || u, alt: '' }))),
       ),
     ),
   );

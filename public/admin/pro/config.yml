@@ -60,6 +60,11 @@ collections:
     label: Главна снимка
     widget: image
     required: false
+  - name: gallery
+    label: Още снимки (галерия)
+    widget: image
+    required: false
+    multiple: true
   - name: excerpt
     label: Кратко резюме (за списъка и Google)
     widget: text
@@ -109,6 +114,11 @@ collections:
     label: Снимка
     widget: image
     required: false
+  - name: gallery
+    label: Още снимки (галерия)
+    widget: image
+    required: false
+    multiple: true
   - name: link
     label: Връзка за регистрация
     widget: string

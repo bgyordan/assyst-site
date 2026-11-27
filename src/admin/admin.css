@@ -285,3 +285,26 @@ body.has-actionbar { padding-bottom: 96px; }
   .pv { padding: 20px 18px 28px; }
   .pv h1 { font-size: 1.5rem; }
 }
+
+/* снимки (няколко, едната главна) */
+.photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.ph { position: relative; aspect-ratio: 4 / 3; border-radius: 12px; overflow: hidden; background: var(--bg); border: 1px solid var(--line); }
+.ph img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ph.main { outline: 2px solid var(--teal); outline-offset: 2px; }
+.ph-badge, .ph-star { position: absolute; left: 8px; bottom: 8px; border-radius: 999px; padding: 4px 10px; font: 600 .75rem var(--sans); border: 0; }
+.ph-badge { background: var(--teal); color: #fff; }
+.ph-star { background: rgba(255, 255, 255, .92); color: var(--navy); cursor: pointer; opacity: .95; }
+.ph-star:hover { background: #fff; color: var(--teal); }
+.ph-del { position: absolute; top: 6px; right: 6px; width: 28px; height: 28px; border-radius: 50%; border: 0; background: rgba(10, 29, 59, .7); color: #fff; cursor: pointer; font-size: 13px; }
+.ph-del:hover { background: #b42318; }
+.ph-add { aspect-ratio: 4 / 3; border: 1px dashed #c9d2dc; border-radius: 12px; background: #fbfcfd; color: var(--muted); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; cursor: pointer; font: 500 .85rem var(--sans); padding: 10px; text-align: center; }
+.ph-add .icon, .ph-add svg { color: var(--teal); }
+.ph-add small { color: var(--faint, #8a96a3); font-size: .75rem; }
+.ph-add:hover, .ph-add.over { border-color: var(--teal); background: var(--teal-soft); }
+.ph-add.empty { grid-column: 1 / -1; aspect-ratio: auto; padding: 30px 16px; }
+.photos-status { font-size: .85rem; color: var(--teal); margin-top: 8px; min-height: 1em; }
+.pv-gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 24px; }
+.pv-gallery img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 10px; }
+@media (max-width: 600px) { .photos { grid-template-columns: repeat(2, 1fr); gap: 8px; } }
+.ab-btns .btn { white-space: nowrap; }
+@media (max-width: 600px) { .ab-btns .btn.big { padding-left: 14px; padding-right: 14px; font-size: .95rem; } }
