@@ -103,7 +103,7 @@ const cats = [...new Set(posts.flatMap((p) => p.data.categories))];
         <>
           <div class="team-grid">
             {team.map((t) => (
-              <a class="member" href={s.profiles ? `#${t.id}` : undefined}>
+              <a class="member" href={s.profiles ? `#${t.id}` : `/екип/#${t.id}`}>
                 {t.data.photo && <img src={t.data.photo} alt={t.data.name} loading="lazy" />}
                 <span class="meta">{t.data.role}</span>
                 <h3>{t.data.name}</h3>

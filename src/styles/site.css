@@ -361,7 +361,7 @@ a.doc:hover { background: var(--paper); color: inherit; }
   .nav > ul > li > a.active::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--teal); margin-right: 10px; flex: none; }
   .nav > ul > li > a.active { justify-content: flex-start; }
   .nav > ul > li > a.active::after { margin-left: auto; }
-  .nav .sub { display: flex; flex-wrap: wrap; gap: 8px; position: static; min-width: 0; border: 0; box-shadow: none; padding: 0 0 16px; margin-top: -4px; background: transparent; }
+  .nav .sub, .nav .has-sub:hover .sub, .nav .has-sub:focus-within .sub { display: flex; flex-wrap: wrap; gap: 8px; position: static; min-width: 0; border: 0; box-shadow: none; padding: 0 0 16px; margin-top: -4px; background: transparent; }
   .nav .sub a { padding: 8px 16px; font-size: 14.5px; font-weight: 500; border: 1px solid var(--line); border-radius: 999px; background: #fff; color: var(--ink); }
   .nav .sub a.active { border-color: var(--teal); background: var(--teal-soft); color: var(--navy); }
   .donate { display: flex !important; align-items: center; justify-content: center; gap: 8px; margin-top: 24px; padding: 15px 20px !important; font-size: 16px !important; }
@@ -559,3 +559,6 @@ h1, h2 { text-wrap: balance; }
   .gallery-grid.n1 { grid-template-columns: 1fr; }
   .lb-prev, .lb-next { top: auto !important; bottom: 12px; transform: none !important; }
 }
+
+/* Мобилното меню не се закрива от бележката за бисквитки */
+body:has(.nav-toggle:checked) .cookie-note { display: none; }
