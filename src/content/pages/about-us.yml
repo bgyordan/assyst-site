@@ -30,7 +30,7 @@ sections:
     text: Помощта трябва да бъде достъпна за всеки, независимо от обстоятелствата.
   - type: team
     label: Управителен съвет
-    profiles: true
+    profiles: false
   - type: text
     label: Учредители
     body: |
