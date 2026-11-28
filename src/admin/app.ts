@@ -142,7 +142,10 @@ function saveSetupBox(appSlug?: string | null, login?: string) {
     appSlug
       ? h('p', null, 'Остава последната стъпка: в GitHub изберете ', h('b', null, 'assyst-site'), ' и натиснете зеления бутон ', h('b', null, 'Install'), '.')
       : h('p', null, 'Натиснете бутона. GitHub ще покаже зелен бутон ', h('b', null, 'Create GitHub App'), ', натиснете го. После изберете ', h('b', null, 'assyst-site'), ' и натиснете ', h('b', null, 'Install'), '. Сайтът ще ви върне тук.'),
-    h('a', { class: 'btn', href: appSlug ? `https://github.com/apps/${appSlug}/installations/new` : '/api/github-app/setup' }, appSlug ? 'Довърши в GitHub' : 'Настрой постоянно записване'),
+    h('div', { class: 'row' },
+      h('a', { class: 'btn', href: appSlug ? `https://github.com/apps/${appSlug}/installations/new` : '/api/github-app/setup' }, appSlug ? 'Довърши в GitHub' : 'Настрой постоянно записване'),
+      appSlug && h('a', { class: 'btn ghost', href: '/api/github-app/setup' }, 'Започни отначало'),
+    ),
   );
 }
 
