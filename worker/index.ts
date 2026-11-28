@@ -390,7 +390,9 @@ async function contact(request: Request, env: Env): Promise<Response> {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    const { pathname } = new URL(request.url);
+    const { pathname, hostname } = new URL(request.url);
+    // One address for everything (sign-in only works on assyst.bg).
+    if (hostname === 'www.assyst.bg') { const u = new URL(request.url); u.hostname = 'assyst.bg'; return Response.redirect(u.toString(), 301); }
     if (pathname === '/api/auth' && request.method === 'GET') return auth(request, env);
     if (pathname === '/api/callback' && request.method === 'GET') return callback(request, env);
     if (pathname === '/api/contact' && request.method === 'POST') return contact(request, env);
