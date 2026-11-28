@@ -562,3 +562,10 @@ h1, h2 { text-wrap: balance; }
 
 /* Мобилното меню не се закрива от бележката за бисквитки */
 body:has(.nav-toggle:checked) .cookie-note { display: none; }
+
+/* Дълги адреси и вградено съдържание не разширяват страницата на телефон */
+.prose, .post-body, .profile-body { overflow-wrap: anywhere; word-break: normal; }
+.prose img, .prose iframe, .prose video, .prose embed, .prose object { max-width: 100%; height: auto; }
+.prose table { display: block; max-width: 100%; overflow-x: auto; }
+.prose pre { max-width: 100%; overflow-x: auto; white-space: pre-wrap; }
+html, body { overflow-x: clip; }
