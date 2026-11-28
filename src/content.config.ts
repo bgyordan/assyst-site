@@ -62,6 +62,7 @@ const posts = defineCollection({
     date: z.coerce.date(),
     categories: z.array(z.string()).default([]),
     image: z.string().optional(),
+    gallery: z.array(z.string()).default([]),
     excerpt: z.string().optional(),
     draft: z.boolean().default(false),
   }),
@@ -76,6 +77,7 @@ const events = defineCollection({
     time: z.string().optional(),
     location: z.string().optional(),
     image: z.string().optional(),
+    gallery: z.array(z.string()).default([]),
     link: z.string().optional(),
   }),
 });

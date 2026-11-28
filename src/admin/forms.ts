@@ -2,11 +2,13 @@
 import { h } from './ui';
 import { richEditor } from './editor';
 import { previews } from './previews';
+import { icon } from './icons';
 
 export type Field =
   | { key: string; label: string; type: 'text' | 'textarea' | 'date' | 'number' | 'email' | 'url'; hint?: string; placeholder?: string; big?: boolean }
   | { key: string; label: string; type: 'rich'; hint?: string; small?: boolean }
   | { key: string; label: string; type: 'image' | 'file'; hint?: string; accept?: string }
+  | { key: string; label: string; type: 'photos'; galleryKey: string; hint?: string }
   | { key: string; label: string; type: 'bool'; hint?: string }
   | { key: string; label: string; type: 'select'; options: { value: any; label: string }[]; hint?: string }
   | { key: string; label: string; type: 'chips'; options: string[]; hint?: string }
@@ -21,7 +23,7 @@ export type Ctx = {
 };
 
 const fieldWrap = (f: Field, ...c: (Node | false | undefined)[]) =>
-  h('div', { class: 'field' }, h('label', { class: 'flabel' }, f.label), f.hint ? h('div', { class: 'hint' }, f.hint) : null, ...c);
+  h('div', { class: 'field' }, f.label ? h('label', { class: 'flabel' }, f.label) : null, f.hint ? h('div', { class: 'hint' }, f.hint) : null, ...c);
 
 export function renderFields(obj: any, fields: Field[], ctx: Ctx): HTMLElement {
   return h('div', { class: 'fields' }, fields.map((f) => renderField(obj, f, ctx)));
@@ -71,10 +73,14 @@ export function renderField(obj: any, f: Field, ctx: Ctx): HTMLElement {
     case 'image': case 'file': {
       const isImg = f.type === 'image';
       const preview = h('div', { class: 'drop-preview' });
+      const dropText = h('div', { class: 'drop-text' });
+      const remove = h('button', { type: 'button', class: 'link-btn', onclick: () => { set(''); show(); } }, isImg ? 'Махни снимката' : 'Махни файла');
       const show = () => {
         preview.innerHTML = '';
         const v = obj[f.key];
-        if (!v) { preview.append(h('span', { class: 'muted' }, isImg ? 'Няма снимка' : 'Няма файл')); return; }
+        remove.hidden = !v;
+        dropText.textContent = isImg ? (v ? 'Кликнете, за да смените снимката' : 'Кликнете тук, за да изберете снимка от компютъра (или я плъзнете тук)') : (v ? 'Кликнете, за да смените файла' : 'Кликнете тук, за да изберете файл (или го плъзнете тук)');
+        if (!v) { preview.append(h('span', { class: 'drop-ic' }, icon(isImg ? 'image' : 'upload', 30))); return; }
         preview.append(isImg ? h('img', { src: previews.get(v) || v, alt: '' }) : h('a', { href: v, target: '_blank' }, decodeURIComponent(v.split('/').pop())));
       };
       show();
@@ -93,11 +99,55 @@ export function renderField(obj: any, f: Field, ctx: Ctx): HTMLElement {
         ondrop: (e: DragEvent) => { e.preventDefault(); drop.classList.remove('over'); pick(e.dataTransfer?.files?.[0]); },
       },
         preview,
-        h('div', { class: 'drop-text' }, isImg ? 'Плъзнете снимка тук или кликнете, за да изберете' : 'Плъзнете файл тук или кликнете, за да изберете'),
+        dropText,
         input,
       );
-      const remove = h('button', { type: 'button', class: 'link-btn', onclick: () => { set(''); show(); } }, isImg ? 'Махни снимката' : 'Махни файла');
       return fieldWrap(f, drop, remove);
+    }
+    case 'photos': {
+      // Main photo in obj[key], the rest in obj[galleryKey]. Shown together; the star picks the main one.
+      const gk = f.galleryKey;
+      const all = (): string[] => [obj[f.key], ...(Array.isArray(obj[gk]) ? obj[gk] : [])].filter(Boolean);
+      const store = (list: string[], main?: string) => {
+        const m = main && list.includes(main) ? main : list[0] || '';
+        obj[f.key] = m || undefined;
+        obj[gk] = list.filter((x) => x !== m);
+        ctx.dirty();
+        draw();
+      };
+      const grid = h('div', { class: 'photos' });
+      const input = h('input', { type: 'file', accept: 'image/*', multiple: true, hidden: true, onchange: () => add([...(input.files || [])]) });
+      const add = async (files: File[]) => {
+        input.value = '';
+        files = files.filter((x) => x.type.startsWith('image/') || /\.(heic|heif)$/i.test(x.name));
+        for (let i = 0; i < files.length; i++) {
+          status.textContent = `Качване на снимка ${i + 1} от ${files.length}…`;
+          const url = await ctx.upload(files[i], 'image');
+          if (url) store([...all(), url], obj[f.key]);
+        }
+        status.textContent = '';
+      };
+      const status = h('div', { class: 'photos-status', role: 'status' });
+      const draw = () => {
+        grid.innerHTML = '';
+        const list = all();
+        list.forEach((url, i) => {
+          const isMain = i === 0;
+          grid.append(h('div', { class: 'ph' + (isMain ? ' main' : '') },
+            h('img', { src: previews.get(url) || url, alt: '' }),
+            isMain ? h('span', { class: 'ph-badge' }, '★ Главна')
+              : h('button', { type: 'button', class: 'ph-star', title: 'Направи я главна снимка', onclick: () => store(list, url) }, '☆ Направи главна'),
+            h('button', { type: 'button', class: 'ph-del', title: 'Махни снимката', 'aria-label': 'Махни снимката', onclick: () => store(list.filter((x) => x !== url), isMain ? undefined : obj[f.key]) }, '✕'),
+          ));
+        });
+        grid.append(h('button', { type: 'button', class: 'ph-add' + (list.length ? '' : ' empty'), onclick: () => input.click(),
+          ondragover: (e: DragEvent) => { e.preventDefault(); (e.currentTarget as HTMLElement).classList.add('over'); },
+          ondragleave: (e: DragEvent) => (e.currentTarget as HTMLElement).classList.remove('over'),
+          ondrop: (e: DragEvent) => { e.preventDefault(); (e.currentTarget as HTMLElement).classList.remove('over'); add([...(e.dataTransfer?.files || [])]); },
+        }, icon('image', 28), h('span', null, list.length ? 'Добави още снимки' : 'Кликнете, за да изберете снимки от компютъра'), h('small', null, 'Може няколко наведнъж')));
+      };
+      draw();
+      return fieldWrap(f, grid, status, input);
     }
     case 'strings': {
       const arr: string[] = (obj[f.key] = Array.isArray(obj[f.key]) ? obj[f.key] : []);
