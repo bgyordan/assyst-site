@@ -263,7 +263,7 @@ async function adminApi(request: Request, env: Env, pathname: string): Promise<R
     await kv.put(`ghapp-state:${state}`, '1', { expirationTtl: 1800 });
     const o = url.origin;
     const manifest = {
-      name: `assyst-bg-site-${randomHex(2)}`, url: o, public: false,
+      name: `assyst-bg-site-${randomHex(2)}`, url: o, public: true,
       hook_attributes: { url: `${o}/api/none`, active: false },
       redirect_url: `${o}/api/github-app/created`, setup_url: `${o}/api/github-app/installed`,
       default_permissions: { contents: 'write', actions: 'read', metadata: 'read' },
