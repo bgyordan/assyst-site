@@ -12,6 +12,7 @@ interface Env {
   CONTACT_FROM?: string; // sender on the domain, e.g. forma@assyst.bg
   REPO?: string;         // owner/name of the content repository
   USERS?: KVNamespace;   // admin panel: editors, sessions, saved GitHub key
+  GITHUB_SAVE_TOKEN?: string; // long-lived fine-grained token (Contents: read/write on the repo) used for editors' saves
 }
 
 const SESSION = 'assyst_session';
@@ -90,6 +91,15 @@ async function callback(request: Request, env: Env): Promise<Response> {
     h.append('Set-Cookie', sessionCookie(sid));
     h.append('Set-Cookie', 'cms_oauth_state=; Path=/api; Max-Age=0');
     return new Response(null, { status: 302, headers: h });
+  }
+  // Sveltia ("Разширен режим") logins refresh the saved key too, so it is always the newest one.
+  if (env.USERS) {
+    const repo = env.REPO || 'bgyordan/assyst-site';
+    const rr = await gh(j.access_token, `repos/${repo}`);
+    const rj = (await rr.json().catch(() => ({}))) as { permissions?: { push?: boolean } };
+    const ur = await gh(j.access_token, 'user');
+    const user = (await ur.json().catch(() => ({}))) as { login?: string };
+    if (rj.permissions?.push) await env.USERS.put('svc:github', JSON.stringify({ token: j.access_token, login: user.login, at: Date.now() }));
   }
   return page(url.origin, 'success', { provider: 'github', token: j.access_token });
 }
@@ -201,7 +211,7 @@ async function adminApi(request: Request, env: Env, pathname: string): Promise<R
       const list = await kv.list({ prefix: 'user:' });
       const users = (await Promise.all(list.keys.map((k) => kv.get(k.name, 'json')))).filter(Boolean) as User[];
       const svc = (await kv.get('svc:github', 'json')) as { login?: string; at?: number } | null;
-      return json({ users: users.map(publicUser).sort((a, b) => a.name.localeCompare(b.name)), saver: svc ? { login: svc.login, at: svc.at } : null });
+      return json({ users: users.map(publicUser).sort((a, b) => a.name.localeCompare(b.name)), saver: svc ? { login: svc.login, at: svc.at } : null, permanent: !!env.GITHUB_SAVE_TOKEN });
     }
     if (request.method === 'POST') {
       const b = await body();
@@ -238,8 +248,9 @@ async function adminApi(request: Request, env: Env, pathname: string): Promise<R
     token = sess.token;
   } else {
     const svc = (await kv.get('svc:github', 'json')) as { token?: string } | null;
-    if (!svc?.token) return json({ error: 'Администраторът трябва да влезе веднъж с GitHub, за да могат служителите да записват.' }, 503);
-    token = svc.token;
+    const t = env.GITHUB_SAVE_TOKEN || svc?.token;
+    if (!t) return json({ error: 'Записването още не е настроено. Моля, кажете на администратора.' }, 503);
+    token = t;
   }
   let reqBody: string | undefined;
   if (request.method !== 'GET') {
@@ -252,8 +263,13 @@ async function adminApi(request: Request, env: Env, pathname: string): Promise<R
       reqBody = JSON.stringify(b);
     }
   }
-  const res = await gh(token, `repos/${repo}/${sub}${url.search}`, { method: request.method, body: reqBody });
-  if (res.status === 401 && sess.kind === 'pw') return json({ error: 'Ключът за записване е изтекъл. Администраторът трябва да влезе веднъж с GitHub.' }, 503);
+  let res = await gh(token, `repos/${repo}/${sub}${url.search}`, { method: request.method, body: reqBody });
+  // The long-lived token failed (revoked/expired): fall back to the last admin's GitHub key.
+  if (res.status === 401 && sess.kind === 'pw' && env.GITHUB_SAVE_TOKEN) {
+    const svc = (await kv.get('svc:github', 'json')) as { token?: string } | null;
+    if (svc?.token && svc.token !== token) res = await gh(svc.token, `repos/${repo}/${sub}${url.search}`, { method: request.method, body: reqBody });
+  }
+  if (res.status === 401 && sess.kind === 'pw') return json({ error: 'Записването временно не работи (изтекъл ключ към GitHub). Не затваряйте страницата и кажете на администратора.' }, 503);
   return new Response(res.body, { status: res.status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
 }
 

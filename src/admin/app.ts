@@ -599,7 +599,7 @@ async function usersView() {
   );
   async function load() {
     try {
-      const { users, saver } = await api.listUsers();
+      const { users, saver, permanent } = await api.listUsers();
       listEl.innerHTML = '';
       if (!users.length) listEl.append(h('p', { class: 'muted empty' }, 'Още няма добавени служители.'));
       for (const u of users) {
@@ -624,7 +624,9 @@ async function usersView() {
           ),
         ));
       }
-      saverEl.textContent = saver
+      saverEl.textContent = permanent
+        ? 'Промените на служителите се записват с постоянен ключ към GitHub. Не е нужно администраторът да влиза.'
+        : saver
         ? `Промените на служителите се записват чрез GitHub профила на ${saver.login}.`
         : 'Внимание: за да могат служителите да записват, администратор трябва да влезе веднъж с GitHub.';
     } catch (e) { listEl.innerHTML = ''; listEl.append(h('p', { class: 'err' }, niceError(e))); }
