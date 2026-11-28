@@ -168,7 +168,7 @@ const DAY = 86400;
 const SESSION_TTL = 30 * DAY;
 const hex = (b: ArrayBuffer | Uint8Array) => [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, '0')).join('');
 const randomHex = (n: number) => hex(crypto.getRandomValues(new Uint8Array(n)));
-const sessionCookie = (sid: string) => `${SESSION}=${sid}; Path=/api; HttpOnly; Secure; SameSite=Strict; Max-Age=${SESSION_TTL}`;
+const sessionCookie = (sid: string) => `${SESSION}=${sid}; Path=/api; HttpOnly; Secure; SameSite=Lax; Max-Age=${SESSION_TTL}`;
 const normEmail = (e: unknown) => clean(e, 200).toLowerCase().replace(/\s/g, '');
 
 async function newSession(env: Env, s: Sess) {
@@ -225,7 +225,7 @@ async function adminApi(request: Request, env: Env, pathname: string): Promise<R
   }
 
   if (pathname === '/api/github-app/created') {
-    // Coming back from github.com: the Strict session cookie is not sent, the one-time state proves it.
+    // Coming back from github.com: the one-time state proves the admin started this.
     const code = url.searchParams.get('code') || '';
     const state = url.searchParams.get('state') || '';
     if (!/^[a-f0-9]{32}$/.test(state) || !(await kv.get(`ghapp-state:${state}`)) || !/^[\w-]+$/.test(code)) return new Response('Невалидна заявка. Опитайте пак от админ панела.', { status: 400 });
