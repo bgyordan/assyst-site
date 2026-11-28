@@ -308,3 +308,5 @@ body.has-actionbar { padding-bottom: 96px; }
 @media (max-width: 600px) { .photos { grid-template-columns: repeat(2, 1fr); gap: 8px; } }
 .ab-btns .btn { white-space: nowrap; }
 @media (max-width: 600px) { .ab-btns .btn.big { padding-left: 14px; padding-right: 14px; font-size: .95rem; } }
+.notice.setup { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin: 8px 0 24px; }
+.notice.setup p { margin: 0; }

@@ -132,9 +132,25 @@ async function loadColl(c: Coll, force = false): Promise<Entry[]> {
   return out;
 }
 
+// ---------- permanent saving (GitHub App) ----------
+function saveSetupBox(appSlug?: string | null, login?: string) {
+  return h('div', { class: 'notice setup' },
+    h('b', null, 'Настройте постоянно записване (еднократно, около 1 минута)'),
+    h('p', null, login
+      ? `Сега промените на служителите минават през вашия GitHub вход (${login}) и спират, ако той изтече.`
+      : 'Сега служителите не могат да записват, докато администратор не влезе с GitHub.'),
+    appSlug
+      ? h('p', null, 'Остава последната стъпка: в GitHub изберете ', h('b', null, 'assyst-site'), ' и натиснете зеления бутон ', h('b', null, 'Install'), '.')
+      : h('p', null, 'Натиснете бутона. GitHub ще покаже зелен бутон ', h('b', null, 'Create GitHub App'), ', натиснете го. После изберете ', h('b', null, 'assyst-site'), ' и натиснете ', h('b', null, 'Install'), '. Сайтът ще ви върне тук.'),
+    h('a', { class: 'btn', href: appSlug ? `https://github.com/apps/${appSlug}/installations/new` : '/api/github-app/setup' }, appSlug ? 'Довърши в GitHub' : 'Настрой постоянно записване'),
+  );
+}
+
 // ---------- views ----------
 async function dashboard() {
   const tiles = h('div', { class: 'tiles' });
+  const setupSlot = h('div');
+  if (user?.admin) api.listUsers().then((r) => { if (!r.permanent) setupSlot.append(saveSetupBox(r.appSlug, r.saver?.login || undefined)); }).catch(() => {});
   shell(`Здравейте${user?.name ? ', ' + user.name.split(' ')[0] : ''}!`,
     h('p', { class: 'lead' }, 'Какво искате да направите днес?'),
     h('div', { class: 'quick' },
@@ -142,6 +158,7 @@ async function dashboard() {
       h('a', { class: 'quick-btn', href: '#/c/events/new' }, icon('calendar', 26), h('span', null, h('b', null, 'Добави събитие'), h('small', null, 'Обучение, среща или друго събитие'))),
       h('a', { class: 'quick-btn', href: '#/c/documents/new' }, icon('upload', 26), h('span', null, h('b', null, 'Качи документ'), h('small', null, 'PDF файл за страница „Документи“'))),
     ),
+    setupSlot,
     h('h2', null, 'Всичко в сайта'),
     tiles,
     h('div', { class: 'card help' },
@@ -562,7 +579,7 @@ function genPassword() {
 
 async function usersView() {
   const listEl = h('div', { class: 'list' }, h('div', { class: 'loading-row' }, h('span', { class: 'spin' }), ' Зареждане…'));
-  const saverEl = h('p', { class: 'muted small-note' });
+  const saverEl = h('div', { class: 'muted small-note' });
   const name = h('input', { type: 'text', placeholder: 'Мария Иванова' });
   const email = h('input', { type: 'email', placeholder: 'maria@example.com' });
   const pass = h('input', { type: 'text', value: genPassword() });
@@ -599,7 +616,7 @@ async function usersView() {
   );
   async function load() {
     try {
-      const { users, saver, permanent } = await api.listUsers();
+      const { users, saver, permanent, appSlug } = await api.listUsers();
       listEl.innerHTML = '';
       if (!users.length) listEl.append(h('p', { class: 'muted empty' }, 'Още няма добавени служители.'));
       for (const u of users) {
@@ -624,11 +641,10 @@ async function usersView() {
           ),
         ));
       }
-      saverEl.textContent = permanent
-        ? 'Промените на служителите се записват с постоянен ключ към GitHub. Не е нужно администраторът да влиза.'
-        : saver
-        ? `Промените на служителите се записват чрез GitHub профила на ${saver.login}.`
-        : 'Внимание: за да могат служителите да записват, администратор трябва да влезе веднъж с GitHub.';
+      saverEl.innerHTML = '';
+      saverEl.append(permanent
+        ? h('span', null, '✓ Записването на служителите е настроено за постоянно. Не е нужно администраторът да влиза.')
+        : saveSetupBox(appSlug, saver?.login));
     } catch (e) { listEl.innerHTML = ''; listEl.append(h('p', { class: 'err' }, niceError(e))); }
   }
   load();

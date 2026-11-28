@@ -39,7 +39,7 @@ export async function login(email: string, password: string): Promise<string> {
   return j.error || 'Входът не успя. Опитайте пак.';
 }
 export const changePassword = (old: string, password: string) => call('password', { method: 'POST', body: JSON.stringify({ old, password }) });
-export const listUsers = (): Promise<{ users: Editor[]; saver: { login?: string; at?: number } | null; permanent?: boolean }> => call('users');
+export const listUsers = (): Promise<{ users: Editor[]; saver: { login?: string; at?: number } | null; permanent?: boolean; appSlug?: string | null }> => call('users');
 export const saveUser = (u: { email: string; name: string; password?: string; admin: boolean }) => call('users', { method: 'POST', body: JSON.stringify(u) });
 export const deleteUser = (email: string) => call(`users?email=${encodeURIComponent(email)}`, { method: 'DELETE' });
 

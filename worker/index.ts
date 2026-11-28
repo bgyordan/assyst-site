@@ -113,6 +113,51 @@ const gh = (token: string, path: string, init: RequestInit = {}) =>
     },
   });
 
+
+// ---------- GitHub App: a permanent way for editors to save ----------
+// Set up once from the admin panel (manifest flow): GitHub creates the app and hands its key
+// straight to this Worker, so nobody has to copy tokens. Short-lived tokens are minted on demand.
+type GhApp = { id: number; slug: string; pem: string; owner?: string };
+const b64url = (b: ArrayBuffer | Uint8Array | string) => {
+  const bytes = typeof b === 'string' ? new TextEncoder().encode(b) : new Uint8Array(b);
+  let bin = ''; for (const x of bytes) bin += String.fromCharCode(x);
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+};
+function derLen(n: number) { if (n < 128) return [n]; const out: number[] = []; while (n) { out.unshift(n & 255); n >>= 8; } return [0x80 | out.length, ...out]; }
+const der = (tag: number, body: number[]) => [tag, ...derLen(body.length), ...body];
+function pemToPkcs8(pem: string): Uint8Array {
+  const b64 = pem.replace(/-----[^-]+-----/g, '').replace(/\s/g, '');
+  const raw = [...Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))];
+  if (/BEGIN PRIVATE KEY/.test(pem)) return new Uint8Array(raw);
+  // PKCS#1 -> PKCS#8
+  const algo = der(0x30, [0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x01, 0x05, 0x00]);
+  return new Uint8Array(der(0x30, [0x02, 0x01, 0x00, ...algo, ...der(0x04, raw)]));
+}
+async function appJwt(app: GhApp) {
+  const key = await crypto.subtle.importKey('pkcs8', pemToPkcs8(app.pem), { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign']);
+  const now = Math.floor(Date.now() / 1000);
+  const data = `${b64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }))}.${b64url(JSON.stringify({ iat: now - 60, exp: now + 540, iss: app.id }))}`;
+  return `${data}.${b64url(await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, new TextEncoder().encode(data)))}`;
+}
+async function appToken(env: Env): Promise<string | null> {
+  const kv = env.USERS; if (!kv) return null;
+  const cached = await kv.get('ghapp:token');
+  if (cached) return cached;
+  const app = (await kv.get('ghapp', 'json')) as GhApp | null;
+  if (!app) return null;
+  try {
+    const jwt = await appJwt(app);
+    const inst = await gh(jwt, `repos/${env.REPO || 'bgyordan/assyst-site'}/installation`);
+    if (!inst.ok) return null;
+    const { id } = (await inst.json()) as { id: number };
+    const tr = await gh(jwt, `app/installations/${id}/access_tokens`, { method: 'POST', body: '{}' });
+    if (!tr.ok) return null;
+    const { token } = (await tr.json()) as { token: string };
+    await kv.put('ghapp:token', token, { expirationTtl: 50 * 60 });
+    return token;
+  } catch { return null; }
+}
+
 // ---------- admin panel: sessions, e-mail + password editors ----------
 type Sess =
   | { kind: 'github'; token: string; login: string; name: string; avatar: string; push: boolean }
@@ -179,6 +224,24 @@ async function adminApi(request: Request, env: Env, pathname: string): Promise<R
     return new Response('{"ok":true}', { headers: { 'Content-Type': 'application/json', 'Set-Cookie': sessionCookie(newSid) } });
   }
 
+  if (pathname === '/api/github-app/created') {
+    // Coming back from github.com: the Strict session cookie is not sent, the one-time state proves it.
+    const code = url.searchParams.get('code') || '';
+    const state = url.searchParams.get('state') || '';
+    if (!/^[a-f0-9]{32}$/.test(state) || !(await kv.get(`ghapp-state:${state}`)) || !/^[\w-]+$/.test(code)) return new Response('Невалидна заявка. Опитайте пак от админ панела.', { status: 400 });
+    await kv.delete(`ghapp-state:${state}`);
+    const r = await fetch(`https://api.github.com/app-manifests/${code}/conversions`, { method: 'POST', headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'assyst-admin' } });
+    const j = (await r.json().catch(() => ({}))) as { id?: number; slug?: string; pem?: string; owner?: { login?: string } };
+    if (!j.id || !j.pem || !j.slug) return new Response('GitHub не върна ключ. Опитайте пак от админ панела.', { status: 502 });
+    await kv.put('ghapp', JSON.stringify({ id: j.id, slug: j.slug, pem: j.pem, owner: j.owner?.login }));
+    await kv.delete('ghapp:token');
+    return Response.redirect(`https://github.com/apps/${j.slug}/installations/new`, 302);
+  }
+  if (pathname === '/api/github-app/installed') {
+    await kv.delete('ghapp:token');
+    return Response.redirect(`${url.origin}/admin/#/users`, 302);
+  }
+
   const sess = sid && /^[a-f0-9]{64}$/.test(sid) ? ((await kv.get(`sess:${sid}`, 'json')) as Sess | null) : null;
   if (!sess) return json({ error: 'login' }, 401);
   const repo = env.REPO || 'bgyordan/assyst-site';
@@ -191,6 +254,26 @@ async function adminApi(request: Request, env: Env, pathname: string): Promise<R
     const u = (await kv.get(`user:${sess.email}`, 'json')) as User | null;
     if (!u) { await kv.delete(`sess:${sid}`); return json({ error: 'login' }, 401); }
     return json({ kind: 'pw', login: u.email, name: u.name, avatar: '', admin: !!u.admin, repo });
+  }
+
+
+  if (pathname === '/api/github-app/setup') {
+    if (!isAdmin(sess)) return json({ error: 'Само администратор.' }, 403);
+    const state = randomHex(16);
+    await kv.put(`ghapp-state:${state}`, '1', { expirationTtl: 1800 });
+    const o = url.origin;
+    const manifest = {
+      name: `assyst-bg-site-${randomHex(2)}`, url: o, public: false,
+      hook_attributes: { url: `${o}/api/none`, active: false },
+      redirect_url: `${o}/api/github-app/created`, setup_url: `${o}/api/github-app/installed`,
+      default_permissions: { contents: 'write', actions: 'read', metadata: 'read' },
+    };
+    const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    const html = `<!doctype html><meta charset="utf-8"><title>GitHub</title><body style="font-family:system-ui;padding:40px;color:#13396a">
+<p>Пренасочване към GitHub…</p>
+<form id="f" method="post" action="https://github.com/settings/apps/new?state=${state}"><input type="hidden" name="manifest" value="${esc(JSON.stringify(manifest))}"><button>Продължи</button></form>
+<script>document.getElementById('f').submit()</script>`;
+    return new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
   }
 
   if (pathname === '/api/password' && request.method === 'POST') {
@@ -211,7 +294,7 @@ async function adminApi(request: Request, env: Env, pathname: string): Promise<R
       const list = await kv.list({ prefix: 'user:' });
       const users = (await Promise.all(list.keys.map((k) => kv.get(k.name, 'json')))).filter(Boolean) as User[];
       const svc = (await kv.get('svc:github', 'json')) as { login?: string; at?: number } | null;
-      return json({ users: users.map(publicUser).sort((a, b) => a.name.localeCompare(b.name)), saver: svc ? { login: svc.login, at: svc.at } : null, permanent: !!env.GITHUB_SAVE_TOKEN });
+      return json({ users: users.map(publicUser).sort((a, b) => a.name.localeCompare(b.name)), saver: svc ? { login: svc.login, at: svc.at } : null, permanent: !!env.GITHUB_SAVE_TOKEN || !!(await appToken(env)), appSlug: ((await kv.get('ghapp', 'json')) as GhApp | null)?.slug || null });
     }
     if (request.method === 'POST') {
       const b = await body();
@@ -248,7 +331,7 @@ async function adminApi(request: Request, env: Env, pathname: string): Promise<R
     token = sess.token;
   } else {
     const svc = (await kv.get('svc:github', 'json')) as { token?: string } | null;
-    const t = env.GITHUB_SAVE_TOKEN || svc?.token;
+    const t = env.GITHUB_SAVE_TOKEN || (await appToken(env)) || svc?.token;
     if (!t) return json({ error: 'Записването още не е настроено. Моля, кажете на администратора.' }, 503);
     token = t;
   }
@@ -265,7 +348,8 @@ async function adminApi(request: Request, env: Env, pathname: string): Promise<R
   }
   let res = await gh(token, `repos/${repo}/${sub}${url.search}`, { method: request.method, body: reqBody });
   // The long-lived token failed (revoked/expired): fall back to the last admin's GitHub key.
-  if (res.status === 401 && sess.kind === 'pw' && env.GITHUB_SAVE_TOKEN) {
+  if (res.status === 401 && sess.kind === 'pw') {
+    await kv.delete('ghapp:token');
     const svc = (await kv.get('svc:github', 'json')) as { token?: string } | null;
     if (svc?.token && svc.token !== token) res = await gh(svc.token, `repos/${repo}/${sub}${url.search}`, { method: request.method, body: reqBody });
   }
@@ -310,7 +394,7 @@ export default {
     if (pathname === '/api/auth' && request.method === 'GET') return auth(request, env);
     if (pathname === '/api/callback' && request.method === 'GET') return callback(request, env);
     if (pathname === '/api/contact' && request.method === 'POST') return contact(request, env);
-    if (['/api/me', '/api/logout', '/api/login', '/api/password', '/api/users'].includes(pathname) || pathname.startsWith('/api/repo/')) return adminApi(request, env, pathname);
+    if (['/api/me', '/api/logout', '/api/login', '/api/password', '/api/users'].includes(pathname) || pathname.startsWith('/api/repo/') || pathname.startsWith('/api/github-app/')) return adminApi(request, env, pathname);
     if (pathname.startsWith('/api/')) return new Response('Not found', { status: 404 });
     if (pathname === '/admin/pro/config.yml') {
       // Sign-in must go through the domain the admin is opened on (workers.dev preview or assyst.bg).
