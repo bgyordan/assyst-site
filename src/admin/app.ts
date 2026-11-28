@@ -1,5 +1,5 @@
 import * as api from './api';
-import { h, toast, confirmBox, busy, fmtDate, isoDate, niceError } from './ui';
+import { h, toast, confirmBox, busy, fmtDate, isoDate, niceError, whenText } from './ui';
 import { renderFields, type Ctx, type Field } from './forms';
 import { richEditor } from './editor';
 import { COLLECTIONS, PAGES, SECTION_TYPES, HERO_FIELDS, SETTINGS_FIELDS, type Coll } from './schema';
@@ -14,7 +14,7 @@ type Entry = { file: api.RepoFile; data: Record<string, any>; body: string; sha:
 
 window.addEventListener('beforeunload', (e) => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
 window.addEventListener('hashchange', async () => {
-  if (dirty && !(await confirmBox('Незапазени промени', 'Имате промени, които не са запазени. Да ги изоставим ли?', 'Изостави промените', true))) {
+  if (dirty && !(await confirmBox('Незапазени промени', 'Имате промени, които не са запазени. Ако излезете сега, те ще се загубят.', 'Излез без запазване', true, 'Остани и продължи'))) {
     history.back();
     return;
   }
@@ -153,9 +153,21 @@ function saveSetupBox(appSlug?: string | null, login?: string) {
 async function dashboard() {
   const tiles = h('div', { class: 'tiles' });
   const setupSlot = h('div');
+  const changesList = h('ul', { class: 'changes' }, h('li', { class: 'muted' }, 'Зареждане…'));
+  const changes = h('div', { class: 'card changes-card' }, h('h2', null, 'Последни промени в сайта'), changesList);
+  api.recentChanges(6).then((list) => {
+    changesList.innerHTML = '';
+    for (const c of list) {
+      const m = /^(Ново|Промяна|Изтрито|Качен файл):\s*(.*?)(?:\s+\(([^)]+)\))?$/.exec(c.message);
+      const what = m ? `${m[1] === 'Ново' ? 'Публикувано' : m[1] === 'Качен файл' ? 'Качена снимка/файл' : m[1]}: ${m[2]}` : c.message.replace(/\s*\(#\d+\)$/, '');
+      const who = (m && m[3]) || (/^(bgyordan|Yordanbg|Claude|github-actions)/i.test(c.author) ? 'администратор' : c.author);
+      changesList.append(h('li', null, h('span', null, what), h('small', null, `${whenText(c.date)} · ${who}`)));
+    }
+    if (!list.length) changesList.append(h('li', { class: 'muted' }, 'Още няма промени.'));
+  }).catch(() => { changes.remove(); });
   if (user?.admin) api.listUsers().then((r) => { if (!r.permanent) setupSlot.append(saveSetupBox(r.appSlug, r.saver?.login || undefined)); }).catch(() => {});
   shell(`Здравейте${user?.name ? ', ' + user.name.split(' ')[0] : ''}!`,
-    h('p', { class: 'lead' }, 'Какво искате да направите днес?'),
+    h('p', { class: 'lead' }, 'Какво искате да направите днес?', user?.prevLogin ? h('span', { class: 'last-login' }, ` Последно влизане: ${whenText(user.prevLogin)}.`) : null),
     h('div', { class: 'quick' },
       h('a', { class: 'quick-btn primary', href: '#/c/posts/new' }, icon('pen', 26), h('span', null, h('b', null, 'Напиши новина'), h('small', null, 'Статия, съобщение или новина за блога'))),
       h('a', { class: 'quick-btn', href: '#/c/events/new' }, icon('calendar', 26), h('span', null, h('b', null, 'Добави събитие'), h('small', null, 'Обучение, среща или друго събитие'))),
@@ -164,6 +176,7 @@ async function dashboard() {
     setupSlot,
     h('h2', null, 'Всичко в сайта'),
     tiles,
+    changes,
     h('div', { class: 'card help' },
       h('h2', null, 'Как се публикува новина?'),
       h('ol', null,
@@ -275,6 +288,7 @@ async function editView(c: Coll, fileName?: string, restored?: { data: Record<st
     ctx.collectors.forEach((fn) => fn());
     const title = String(data[c.titleKey] || '').trim();
     if (!title) { toast('Моля, напишете заглавие (стъпка 1).', 'err'); (root.querySelector('.step input') as HTMLInputElement)?.focus(); return; }
+    if (isNew && !(await confirmBox('Публикуване', `„${title}“ ще се появи на сайта след 1–2 минути. Да публикуваме ли?`, data.draft ? 'Запази като чернова' : 'Потвърди и публикувай'))) return;
     if (c.key === 'posts' && !data.excerpt && body) {
       const plain = body.value.replace(/[#*_>\[\]()!`-]/g, ' ').replace(/\s+/g, ' ').trim();
       data.excerpt = plain.length > 220 ? plain.slice(0, 220).replace(/\s+\S*$/, '') + '…' : plain;
@@ -319,7 +333,7 @@ async function editView(c: Coll, fileName?: string, restored?: { data: Record<st
     h('div', { class: 'actionbar' },
       h('div', { class: 'wrap actionbar-in' },
         h('span', { class: 'ab-note' }, isNew ? 'Новината се появява на сайта 1–2 минути след публикуване.' : 'Промените се виждат на сайта след 1–2 минути.'),
-        h('div', { class: 'ab-btns' }, preview, save),
+        h('div', { class: 'ab-btns' }, h('a', { class: 'btn ghost big ab-cancel', href: `#/c/${c.key}` }, 'Откажи'), preview, save),
       )),
   );
   document.body.classList.add('has-actionbar');
@@ -490,7 +504,7 @@ async function pageEdit(file: string) {
         h('p', { class: 'muted' }, 'Кликнете върху секция, за да я отворите. Със стрелките ги разместите.'),
         sectionsBox,
       ),
-      h('aside', { class: 'side' }, h('div', { class: 'card sticky' }, save, h('a', { class: 'btn ghost', href: meta.url, target: '_blank' }, 'Виж страницата'),
+      h('aside', { class: 'side' }, h('div', { class: 'card sticky' }, save, h('a', { class: 'btn ghost', href: '#/pages' }, 'Откажи'), h('a', { class: 'btn ghost', href: meta.url, target: '_blank' }, 'Виж страницата'),
         h('div', { class: 'field' }, h('label', { class: 'flabel' }, 'Описание за Google'), (() => {
           const ta = h('textarea', { rows: 4, oninput: () => { data.description = ta.value; dirty = true; } }, data.description || '');
           return ta;
@@ -515,7 +529,7 @@ async function settingsView() {
   shell('Контакти и меню', back('#/', 'Начало'),
     h('div', { class: 'editor-grid' },
       h('div', { class: 'card' }, renderFields(data, SETTINGS_FIELDS, ctx)),
-      h('aside', { class: 'side' }, h('div', { class: 'card sticky' }, save)),
+      h('aside', { class: 'side' }, h('div', { class: 'card sticky' }, save, h('a', { class: 'btn ghost', href: '#/' }, 'Откажи'))),
     ));
 }
 
@@ -625,7 +639,7 @@ async function usersView() {
       for (const u of users) {
         listEl.append(h('div', { class: 'list-item' },
           h('div', { class: 'li-main' }, h('span', { class: 'thumb' }, icon('users', 20)),
-            h('span', { class: 'li-text' }, h('b', null, u.name), h('small', null, [u.email, u.admin ? 'администратор' : ''].filter(Boolean).join(' · ')))),
+            h('span', { class: 'li-text' }, h('b', null, u.name), h('small', null, [u.email, u.admin ? 'администратор' : '', u.lastLogin ? 'последно влизане ' + whenText(u.lastLogin) : 'още не е влизал(а)'].filter(Boolean).join(' · ')))),
           h('div', { class: 'li-tools' },
             h('button', { class: 'btn ghost small', onclick: async () => {
               const pw = genPassword();
@@ -668,7 +682,7 @@ function accountView() {
       h('div', { class: 'field' }, h('label', { class: 'flabel' }, 'Сегашна парола'), old),
       h('div', { class: 'field' }, h('label', { class: 'flabel' }, 'Нова парола (поне 8 знака)'), pw),
       h('div', { class: 'field' }, h('label', { class: 'flabel' }, 'Нова парола още веднъж'), pw2),
-      save,
+      h('div', { class: 'row' }, h('a', { class: 'btn ghost', href: '#/' }, 'Откажи'), save),
     )));
 }
 

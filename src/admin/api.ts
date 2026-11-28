@@ -2,8 +2,8 @@
 // editor's GitHub sign-in. Every save is a commit; GitHub Actions then publishes the site.
 import { load, dump } from 'js-yaml';
 
-export type Me = { kind: 'github' | 'pw'; login: string; name: string; avatar: string; admin: boolean; repo: string };
-export type Editor = { email: string; name: string; admin: boolean; created: number };
+export type Me = { kind: 'github' | 'pw'; login: string; name: string; avatar: string; admin: boolean; repo: string; prevLogin?: number | null };
+export type Editor = { email: string; name: string; admin: boolean; created: number; lastLogin?: number | null };
 export type RepoFile = { name: string; path: string; sha: string; type: 'file' | 'dir'; size: number };
 
 export class LoginError extends Error {}
@@ -100,6 +100,12 @@ export async function deleteFile(path: string, sha: string, message: string) {
 export let lastCommitAt = 0;
 
 /** Latest publish run: 'running' | 'ok' | 'failed' | 'none' */
+export type Change = { message: string; author: string; date: string };
+export async function recentChanges(n = 6): Promise<Change[]> {
+  const j = await call(`repo/commits?per_page=${n}&sha=main&t=${Date.now()}`);
+  return (j as any[]).map((c) => ({ message: String(c.commit?.message || '').split('\n')[0], author: c.commit?.author?.name || '', date: c.commit?.author?.date || '' }));
+}
+
 export async function publishStatus(): Promise<{ state: string; at?: string }> {
   try {
     const j = await call(`repo/actions/runs?per_page=1&branch=main&t=${Date.now()}`);

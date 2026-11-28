@@ -86,6 +86,10 @@ async function callback(request: Request, env: Env): Promise<Response> {
     const push = !!rj.permissions?.push;
     // A GitHub admin's key is kept so that editors who sign in with e-mail can save too.
     if (push) await env.USERS.put('svc:github', JSON.stringify({ token: j.access_token, login: user.login, at: Date.now() }));
+    if (user.login) {
+      const g = ((await env.USERS.get(`gh:${user.login}`, 'json')) as { lastLogin?: number } | null) || {};
+      await env.USERS.put(`gh:${user.login}`, JSON.stringify({ prevLogin: g.lastLogin, lastLogin: Date.now() }));
+    }
     const sid = await newSession(env, { kind: 'github', token: j.access_token, login: user.login || '', name: user.name || user.login || '', avatar: user.avatar_url || '', push });
     const h = new Headers({ Location: '/admin/' });
     h.append('Set-Cookie', sessionCookie(sid));
@@ -162,7 +166,7 @@ async function appToken(env: Env): Promise<string | null> {
 type Sess =
   | { kind: 'github'; token: string; login: string; name: string; avatar: string; push: boolean }
   | { kind: 'pw'; email: string; name: string; admin: boolean };
-type User = { email: string; name: string; hash: string; salt: string; admin?: boolean; created: number };
+type User = { email: string; name: string; hash: string; salt: string; admin?: boolean; created: number; lastLogin?: number; prevLogin?: number };
 
 const DAY = 86400;
 const SESSION_TTL = 30 * DAY;
@@ -188,7 +192,7 @@ function sameString(a: string, b: string) {
   return d === 0;
 }
 const isAdmin = (s: Sess) => (s.kind === 'github' ? s.push : s.admin);
-const publicUser = (u: User) => ({ email: u.email, name: u.name, admin: !!u.admin, created: u.created });
+const publicUser = (u: User) => ({ email: u.email, name: u.name, admin: !!u.admin, created: u.created, lastLogin: u.lastLogin || null });
 
 async function adminApi(request: Request, env: Env, pathname: string): Promise<Response> {
   const url = new URL(request.url);
@@ -220,6 +224,8 @@ async function adminApi(request: Request, env: Env, pathname: string): Promise<R
       return json({ error: 'Грешен имейл или парола.' }, 401);
     }
     await kv.delete(failKey);
+    u.prevLogin = u.lastLogin; u.lastLogin = Date.now();
+    await kv.put(`user:${u.email}`, JSON.stringify(u));
     const newSid = await newSession(env, { kind: 'pw', email: u.email, name: u.name, admin: !!u.admin });
     return new Response('{"ok":true}', { headers: { 'Content-Type': 'application/json', 'Set-Cookie': sessionCookie(newSid) } });
   }
@@ -249,11 +255,12 @@ async function adminApi(request: Request, env: Env, pathname: string): Promise<R
   if (pathname === '/api/me') {
     if (sess.kind === 'github') {
       if (!sess.push) return json({ error: 'noaccess', login: sess.login }, 403);
-      return json({ kind: 'github', login: sess.login, name: sess.name, avatar: sess.avatar, admin: true, repo });
+      const g = (await kv.get(`gh:${sess.login}`, 'json')) as { prevLogin?: number } | null;
+      return json({ kind: 'github', login: sess.login, name: sess.name, avatar: sess.avatar, admin: true, repo, prevLogin: g?.prevLogin || null });
     }
     const u = (await kv.get(`user:${sess.email}`, 'json')) as User | null;
     if (!u) { await kv.delete(`sess:${sid}`); return json({ error: 'login' }, 401); }
-    return json({ kind: 'pw', login: u.email, name: u.name, avatar: '', admin: !!u.admin, repo });
+    return json({ kind: 'pw', login: u.email, name: u.name, avatar: '', admin: !!u.admin, repo, prevLogin: u.prevLogin || null });
   }
 
 

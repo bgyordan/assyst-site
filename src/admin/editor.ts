@@ -1,7 +1,7 @@
 // A small "like Word" text editor: toolbar + editable area. Stores Markdown.
 import { marked } from 'marked';
 import TurndownService from 'turndown';
-import { h } from './ui';
+import { h, infoBox, askBox } from './ui';
 import { previews } from './previews';
 
 const td = new TurndownService({ headingStyle: 'atx', bulletListMarker: '-', emDelimiter: '*', hr: '---' });
@@ -37,12 +37,16 @@ export function richEditor({ value, small, placeholder, onImage }: Opts) {
     btn('• Списък', 'Списък с точки', () => exec('insertUnorderedList'), 'wide'),
     !small && btn('1. Списък', 'Номериран списък', () => exec('insertOrderedList'), 'wide'),
     h('span', { class: 'rte-sep' }),
-    btn('Връзка', 'Маркирайте текст и натиснете, за да стане връзка', () => {
+    btn('Връзка', 'Маркирайте текст и натиснете, за да стане връзка', async () => {
       const sel = window.getSelection();
-      if (!sel || sel.isCollapsed) { alert('Първо маркирайте с мишката текста, който да стане връзка.'); return; }
-      let url = prompt('Адрес на връзката (напр. https://… или имейл):', 'https://');
-      if (!url) return;
+      if (!sel || sel.isCollapsed || !area.contains(sel.anchorNode)) { infoBox('Връзка', 'Първо маркирайте с мишката думите, които да станат връзка, и после натиснете „Връзка“.'); return; }
+      const range = sel.getRangeAt(0).cloneRange();
+      let url = await askBox('Връзка', 'Поставете адреса на страницата (https://…) или имейл.', '', 'https://…');
+      if (!url || url === 'https://') return;
       if (/^[^@\s]+@[^@\s]+$/.test(url)) url = 'mailto:' + url;
+      else if (!/^(https?:|mailto:|\/)/.test(url)) url = 'https://' + url;
+      area.focus();
+      const s2 = window.getSelection()!; s2.removeAllRanges(); s2.addRange(range);
       exec('createLink', url);
     }, 'wide'),
     onImage && !small && btn('Снимка в текста', 'Вмъкни снимка в текста', () => fileInput.click(), 'wide'),
